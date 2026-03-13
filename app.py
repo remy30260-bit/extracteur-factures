@@ -87,26 +87,26 @@ if fichiers and api_key:
                     "statut": f"❌ Erreur: {str(e)}"
                 })
             
-            progress.progress((i + 1) / len(fichiers))
+                    progress.progress((i + 1) / len(fichiers))
         
         status.text("✅ Traitement terminé !")
         
         df = pd.DataFrame(resultats)
         
-       cols = ["fournisseur_client", "numero_facture", "type", "montant_facture", "date_facture"]
-cols = [c for c in cols if c in df.columns]
-df = df[cols]
-
-df = df.rename(columns={
-    "fournisseur_client": "Nom fournisseur ou client",
-    "numero_facture": "N° facture",
-    "type": "Type",
-    "montant_facture": "Montant facture",
-    "date_facture": "Date de facture (ou fait générateur)"
-})
-
+        cols = ["fournisseur_client", "numero_facture", "type", "montant_facture", "date_facture"]
+        cols = [c for c in cols if c in df.columns]
+        df = df[cols]
+        
+        df = df.rename(columns={
+            "fournisseur_client": "Nom fournisseur ou client",
+            "numero_facture": "N° facture",
+            "type": "Type",
+            "montant_facture": "Montant facture",
+            "date_facture": "Date de facture (ou fait générateur)"
+        })
         
         st.dataframe(df, use_container_width=True)
+
         
         buffer = io.BytesIO()
         df.to_excel(buffer, index=False, engine="openpyxl")
