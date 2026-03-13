@@ -93,19 +93,18 @@ if fichiers and api_key:
         
         df = pd.DataFrame(resultats)
         
-        cols = ["fichier", "statut", "fournisseur_client", "numero_facture", "type", "montant_facture", "date_facture"]
-        cols = [c for c in cols if c in df.columns]
-        df = df[cols]
-        
-        df = df.rename(columns={
-            "fichier": "Fichier",
-            "statut": "Statut",
-            "fournisseur_client": "Nom fournisseur ou client",
-            "numero_facture": "N° facture",
-            "type": "Type",
-            "montant_facture": "Montant facture",
-            "date_facture": "Date de facture (ou fait générateur)"
-        })
+       cols = ["fournisseur_client", "numero_facture", "type", "montant_facture", "date_facture"]
+cols = [c for c in cols if c in df.columns]
+df = df[cols]
+
+df = df.rename(columns={
+    "fournisseur_client": "Nom fournisseur ou client",
+    "numero_facture": "N° facture",
+    "type": "Type",
+    "montant_facture": "Montant facture",
+    "date_facture": "Date de facture (ou fait générateur)"
+})
+
         
         st.dataframe(df, use_container_width=True)
         
