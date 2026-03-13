@@ -49,11 +49,6 @@ st.markdown("""
         background: linear-gradient(90deg, #a8b8ff, #c5b8ff, #f0b8ff);
         border-radius: 10px;
     }
-    .periode-card {
-        background: white; border-radius: 16px; padding: 1.2rem 1.5rem;
-        box-shadow: 0 4px 20px rgba(91,106,191,0.1);
-        border: 1px solid #e0e6ff; margin-bottom: 1.5rem;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -62,122 +57,112 @@ with st.sidebar:
     st.markdown("## ⚙️ Configuration")
     api_key = st.text_input("🔑 Clé API Gemini", type="password", placeholder="AIza...")
     st.markdown("---")
+    st.markdown("### 📅 Période par défaut")
+    mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
+                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+    mois_choisi = st.selectbox("Mois", mois_list, index=0)
+    annee_choisie = st.selectbox("Année", list(range(2023, 2031)), index=2)
+    st.markdown("---")
     st.markdown("### 📖 Guide")
     st.markdown("""
-    1. 🔑 Entrez votre clé API Gemini  
-    2. 📅 Choisissez la période  
-    3. 📤 Uploadez vos factures  
-    4. 🚀 Cliquez sur Analyser  
-    5. ✏️ Corrigez si besoin  
-    6. 📥 Exportez en Excel  
+    1. Entrez votre clé API
+    2. Choisissez la période par défaut
+    3. Uploadez vos factures
+    4. Cliquez sur Extraire
+    5. Modifiez si besoin
+    6. Exportez en Excel
     """)
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align:center; padding:1rem;">
+        <div style="font-size:3rem;">🐱</div>
+        <div style="color:#9aa0c4; font-size:0.8rem;">Votre assistant comptable</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─── TITRE ───────────────────────────────────────────────────────────────────
-st.markdown("# 🧾 Extracteur de Factures")
-st.markdown("---")
-
-# ─── SÉLECTEUR DE PÉRIODE DANS LA PAGE ───────────────────────────────────────
-mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
-             "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-
-st.markdown('<div class="periode-card">', unsafe_allow_html=True)
-st.markdown("### 📅 Période de facturation")
-col_m, col_a = st.columns(2)
-with col_m:
-    mois_choisi = st.selectbox(
-        "Mois", mois_list,
-        index=pd.Timestamp.now().month - 1,
-        key="mois_main"
-    )
-with col_a:
-    annee_choisie = st.selectbox(
-        "Année", list(range(2023, 2031)),
-        index=list(range(2023, 2031)).index(pd.Timestamp.now().year),
-        key="annee_main"
-    )
-st.markdown('</div>', unsafe_allow_html=True)
+st.markdown("<h1>🧾 Extracteur de Factures</h1>", unsafe_allow_html=True)
+st.markdown("<p style='color:#9aa0c4;'>Uploadez vos factures PDF ou images — l'IA extrait tout automatiquement</p>", unsafe_allow_html=True)
 
 # ─── UPLOAD ──────────────────────────────────────────────────────────────────
 fichiers = st.file_uploader(
-    "📤 Déposez vos factures ici (PDF ou images)",
+    "📂 Déposez vos factures ici",
     type=["pdf", "png", "jpg", "jpeg"],
     accept_multiple_files=True
 )
 
-# ─── BOUTON ANALYSER ─────────────────────────────────────────────────────────
+# ─── EXTRACTION ──────────────────────────────────────────────────────────────
 if fichiers and api_key:
     col_btn = st.columns([1, 2, 1])
     with col_btn[1]:
-        analyser = st.button("🚀 Analyser les factures", type="primary", width='stretch')
+        lancer = st.button("🚀 Lancer l'extraction", type="primary", use_container_width=True)
 
-    if analyser:
+    if lancer:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("gemini-2.5-flash")
 
         resultats = []
         progress = st.progress(0)
-        status_text = st.empty()
+        status = st.empty()
 
         for i, fichier in enumerate(fichiers):
-            status_text.markdown(f"⏳ Analyse de **{fichier.name}**...")
+            status.markdown(f"⏳ Traitement : **{fichier.name}** ({i+1}/{len(fichiers)})")
             try:
                 if fichier.type == "application/pdf":
                     pdf = fitz.open(stream=fichier.read(), filetype="pdf")
                     page = pdf[0]
                     pix = page.get_pixmap(dpi=200)
-                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    img_bytes = pix.tobytes("png")
+                    image = Image.open(io.BytesIO(img_bytes))
                 else:
-                    img = Image.open(fichier)
+                    image = Image.open(fichier)
 
-                prompt = """Tu es un expert comptable. Analyse cette facture attentivement.
+                prompt = """Tu es un expert comptable. Analyse cette facture et extrais UNIQUEMENT les informations du FOURNISSEUR (celui qui émet la facture, qui vend le service/produit).
 
-RÈGLE IMPORTANTE pour "fournisseur_client" :
-- Le FOURNISSEUR est l'entreprise qui ÉMET la facture (celle qui vend / qui demande le paiement)
-- Le CLIENT est l'entreprise qui REÇOIT la facture (celle qui doit payer)
-- Tu dois retourner UNIQUEMENT le nom du FOURNISSEUR (émetteur), PAS le client
-- Le fournisseur est souvent en haut de la facture avec son logo, son SIRET, ses coordonnées bancaires
-- Le client est souvent mentionné dans une section "Facturer à" / "Bill to" / "Client"
+RÈGLES IMPORTANTES :
+- Le FOURNISSEUR est l'entreprise qui a émis la facture (son nom/logo est généralement en haut, ses coordonnées bancaires sont présentes, c'est lui qui demande le paiement)
+- Le CLIENT est celui qui reçoit la facture et doit payer (à NE PAS mettre dans fournisseur_client)
+- Si tu vois "ANTARES", "MIEUXASSURER" ou toute autre société en tant qu'émetteur = c'est le fournisseur
+- Le numéro de facture commence souvent par des lettres + chiffres (ex: ANTIT25020037)
 
-Retourne UNIQUEMENT ce JSON brut, sans texte avant ou après, sans markdown :
+Retourne UNIQUEMENT ce JSON (sans markdown, sans ```):
 {
-  "fournisseur_client": "nom du fournisseur émetteur uniquement",
-  "numero_facture": "numéro de facture",
-  "type": "Facture",
-  "montant_facture": "montant TTC en chiffres uniquement exemple 1250.00",
+  "fournisseur_client": "nom du FOURNISSEUR uniquement",
+  "numero_facture": "numéro de la facture",
+  "type": "FACTURE ou AVOIR",
+  "montant_facture": "montant TTC avec devise",
   "date_facture": "date au format JJ/MM/AAAA",
   "statut": "À valider"
-}
-Si une information est introuvable, mets "Non trouvé"."""
+}"""
 
-                response = model.generate_content([prompt, img])
+                response = model.generate_content([prompt, image])
                 texte = response.text.strip()
 
-                # Nettoyage robuste
-                texte = texte.replace("```json", "").replace("```", "").strip()
-                debut = texte.find("{")
-                fin = texte.rfind("}") + 1
-                if debut != -1 and fin > debut:
-                    texte = texte[debut:fin]
+                # Nettoyage JSON
+                if "```" in texte:
+                    texte = texte.split("```")[1]
+                    if texte.startswith("json"):
+                        texte = texte[4:]
+                texte = texte.strip()
 
                 data = json.loads(texte)
                 data["fichier"] = fichier.name
                 resultats.append(data)
 
             except Exception as e:
-                st.error(f"Erreur sur {fichier.name} : {e}")
                 resultats.append({
+                    "fichier": fichier.name,
                     "fournisseur_client": "Erreur",
                     "numero_facture": "",
                     "type": "",
                     "montant_facture": "",
                     "date_facture": "",
-                    "statut": f"❌ {str(e)}",
-                    "fichier": fichier.name
+                    "statut": f"❌ {str(e)[:50]}"
                 })
 
             progress.progress((i + 1) / len(fichiers))
 
-        status_text.markdown("✅ **Analyse terminée !**")
+        status.success(f"✅ {len(fichiers)} facture(s) traitée(s) !")
 
         # ─── TABLEAU ─────────────────────────────────────────────────────────
         df = pd.DataFrame(resultats)
@@ -188,17 +173,37 @@ Si une information est introuvable, mets "Non trouvé"."""
             if col not in df.columns:
                 df[col] = ""
         df = df[col_order]
-
         df.columns = ["Fichier", "Fournisseur", "N° Facture",
                       "Type", "Montant TTC", "Date", "Statut"]
 
-        st.markdown("### 📊 Résultats")
+        st.markdown("### 📊 Résultats — vous pouvez modifier les cellules avant export")
+
+        # Options de période pour le menu déroulant dans le tableau
+        mois_list_court = ["Janvier","Février","Mars","Avril","Mai","Juin",
+                           "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+        options_periode = [f"{m} {a}" for a in range(2023, 2031) for m in mois_list_court]
+
+        # Pré-remplir la colonne Date avec la période choisie en sidebar
+        df["Date"] = f"{mois_choisi} {annee_choisie}"
 
         df_edit = st.data_editor(
             df,
-            width='stretch',
+            use_container_width=True,
             hide_index=True,
             column_config={
+                "Fichier": st.column_config.TextColumn("Fichier", disabled=True),
+                "Fournisseur": st.column_config.TextColumn("Fournisseur"),
+                "N° Facture": st.column_config.TextColumn("N° Facture"),
+                "Type": st.column_config.SelectboxColumn(
+                    "Type",
+                    options=["FACTURE", "AVOIR"]
+                ),
+                "Montant TTC": st.column_config.TextColumn("Montant TTC"),
+                "Date": st.column_config.SelectboxColumn(
+                    "📅 Période",
+                    options=options_periode,
+                    required=True
+                ),
                 "Statut": st.column_config.SelectboxColumn(
                     "Statut",
                     options=["À valider", "Validé ✅", "❌ Erreur", "En attente ⏳"]
@@ -207,6 +212,7 @@ Si une information est introuvable, mets "Non trouvé"."""
         )
 
         # ─── STATISTIQUES ────────────────────────────────────────────────────
+        st.markdown("### 📈 Statistiques")
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown(f"""
@@ -236,26 +242,6 @@ Si une information est introuvable, mets "Non trouvé"."""
             """, unsafe_allow_html=True)
 
         # ─── EXPORT EXCEL ────────────────────────────────────────────────────
-        st.markdown("### 📥 Export")
-        
-        # Sélecteur de période pour l'export
-        st.markdown('<div class="periode-card">', unsafe_allow_html=True)
-        st.markdown("**📅 Période pour l'export Excel**")
-        col_em, col_ea = st.columns(2)
-        with col_em:
-            mois_export = st.selectbox(
-                "Mois export", mois_list,
-                index=mois_list.index(mois_choisi),
-                key="mois_export"
-            )
-        with col_ea:
-            annee_export = st.selectbox(
-                "Année export", list(range(2023, 2031)),
-                index=list(range(2023, 2031)).index(annee_choisie),
-                key="annee_export"
-            )
-        st.markdown('</div>', unsafe_allow_html=True)
-
         buffer = io.BytesIO()
         df_edit.to_excel(buffer, index=False, engine="openpyxl")
         buffer.seek(0)
@@ -263,11 +249,11 @@ Si une information est introuvable, mets "Non trouvé"."""
         col_dl = st.columns([1, 2, 1])
         with col_dl[1]:
             st.download_button(
-                label=f"📥 Télécharger Excel — {mois_export} {annee_export}",
+                label="📥 Télécharger Excel",
                 data=buffer,
-                file_name=f"factures_{mois_export}_{annee_export}.xlsx",
+                file_name=f"factures_{mois_choisi}_{annee_choisie}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                width='stretch'
+                use_container_width=True
             )
 
 elif fichiers and not api_key:
