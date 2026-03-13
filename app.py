@@ -107,7 +107,7 @@ fichiers = st.file_uploader(
 
 # ─── TRAITEMENT ──────────────────────────────────────────────────────────────
 if fichiers and api_key:
-    if st.button("🚀 Analyser les factures", type="primary", use_container_width=True):
+    if st.button("🚀 Analyser les factures", type="primary", width='stretch'):
 
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("gemini-1.5-flash")
@@ -199,7 +199,7 @@ Format strict :
 
         df_edit = st.data_editor(
             df,
-            use_container_width=True,
+            width='stretch',
             height=350,
             column_config={
                 "Date": st.column_config.SelectboxColumn(
@@ -259,7 +259,7 @@ Format strict :
                 data=buffer,
                 file_name=f"factures_{mois_choisi}_{annee_choisie}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
+                width='stretch'
             )
 
 elif fichiers and not api_key:
