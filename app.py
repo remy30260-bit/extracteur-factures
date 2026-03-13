@@ -138,7 +138,6 @@ Retourne UNIQUEMENT ce JSON (sans markdown, sans ```):
                 response = model.generate_content([prompt, image])
                 texte = response.text.strip()
 
-                # Nettoyage JSON
                 if "```" in texte:
                     texte = texte.split("```")[1]
                     if texte.startswith("json"):
@@ -164,9 +163,8 @@ Retourne UNIQUEMENT ce JSON (sans markdown, sans ```):
 
         status.success(f"✅ {len(fichiers)} facture(s) traitée(s) !")
 
-        # ─── TABLEAU ─────────────────────────────────────────────────────────
+        # Construire le DataFrame et le sauvegarder en session_state
         df = pd.DataFrame(resultats)
-
         col_order = ["fichier", "fournisseur_client", "numero_facture",
                      "type", "montant_facture", "date_facture", "statut"]
         for col in col_order:
@@ -175,89 +173,110 @@ Retourne UNIQUEMENT ce JSON (sans markdown, sans ```):
         df = df[col_order]
         df.columns = ["Fichier", "Fournisseur", "N° Facture",
                       "Type", "Montant TTC", "Date", "Statut"]
-
-        st.markdown("### 📊 Résultats — vous pouvez modifier les cellules avant export")
-
-        # Options de période pour le menu déroulant dans le tableau
-        mois_list_court = ["Janvier","Février","Mars","Avril","Mai","Juin",
-                           "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-        options_periode = [f"{m} {a}" for a in range(2023, 2031) for m in mois_list_court]
-
-        # Pré-remplir la colonne Date avec la période choisie en sidebar
         df["Date"] = f"{mois_choisi} {annee_choisie}"
 
-        df_edit = st.data_editor(
-            df,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Fichier": st.column_config.TextColumn("Fichier", disabled=True),
-                "Fournisseur": st.column_config.TextColumn("Fournisseur"),
-                "N° Facture": st.column_config.TextColumn("N° Facture"),
-                "Type": st.column_config.SelectboxColumn(
-                    "Type",
-                    options=["FACTURE", "AVOIR"]
-                ),
-                "Montant TTC": st.column_config.TextColumn("Montant TTC"),
-                "Date": st.column_config.SelectboxColumn(
-                    "📅 Période",
-                    options=options_periode,
-                    required=True
-                ),
-                "Statut": st.column_config.SelectboxColumn(
-                    "Statut",
-                    options=["À valider", "Validé ✅", "❌ Erreur", "En attente ⏳"]
-                )
-            }
+        # ✅ Sauvegarde dans session_state
+        st.session_state["df_factures"] = df
+
+# ─── TABLEAU (affiché depuis session_state — résiste aux re-runs) ─────────────
+if "df_factures" in st.session_state:
+    df = st.session_state["df_factures"].copy()
+
+    st.markdown("### 📊 Résultats — vous pouvez modifier les cellules avant export")
+
+    # Sélecteur de période rapide AU-DESSUS du tableau
+    st.markdown("#### 📅 Changer la période pour toutes les lignes")
+    col_p1, col_p2 = st.columns([1, 1])
+    with col_p1:
+        mois_rapide = st.selectbox(
+            "Mois",
+            mois_list,
+            index=mois_list.index(mois_choisi),
+            key="mois_rapide"
+        )
+    with col_p2:
+        annee_rapide = st.selectbox(
+            "Année",
+            list(range(2023, 2031)),
+            index=list(range(2023, 2031)).index(annee_choisie),
+            key="annee_rapide"
         )
 
-        # ─── STATISTIQUES ────────────────────────────────────────────────────
-        st.markdown("### 📈 Statistiques")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown(f"""
-            <div class="card" style="text-align:center;">
-                <div style="font-size:2rem;">🧾</div>
-                <div style="font-size:1.8rem; font-weight:700; color:#5b6abf;">{len(df_edit)}</div>
-                <div style="color:#9aa0c4;">Factures traitées</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with col2:
-            nb_valides = len(df_edit[df_edit["Statut"] == "Validé ✅"])
-            st.markdown(f"""
-            <div class="card" style="text-align:center;">
-                <div style="font-size:2rem;">✅</div>
-                <div style="font-size:1.8rem; font-weight:700; color:#2d6b4a;">{nb_valides}</div>
-                <div style="color:#9aa0c4;">Validées</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with col3:
-            nb_erreurs = len(df_edit[df_edit["Statut"].str.startswith("❌", na=False)])
-            st.markdown(f"""
-            <div class="card" style="text-align:center;">
-                <div style="font-size:2rem;">❌</div>
-                <div style="font-size:1.8rem; font-weight:700; color:#c0392b;">{nb_erreurs}</div>
-                <div style="color:#9aa0c4;">Erreurs</div>
-            </div>
-            """, unsafe_allow_html=True)
+    # Mettre à jour toutes les lignes avec la période choisie
+    df["Date"] = f"{mois_rapide} {annee_rapide}"
+    st.session_state["df_factures"]["Date"] = df["Date"]
 
-        # ─── EXPORT EXCEL ────────────────────────────────────────────────────
-        buffer = io.BytesIO()
-        df_edit.to_excel(buffer, index=False, engine="openpyxl")
-        buffer.seek(0)
+    options_periode = [f"{m} {a}" for a in range(2023, 2031) for m in mois_list]
 
-        col_dl = st.columns([1, 2, 1])
-        with col_dl[1]:
-            st.download_button(
-                label="📥 Télécharger Excel",
-                data=buffer,
-                file_name=f"factures_{mois_choisi}_{annee_choisie}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
+    df_edit = st.data_editor(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Fichier": st.column_config.TextColumn("Fichier", disabled=True),
+            "Fournisseur": st.column_config.TextColumn("Fournisseur"),
+            "N° Facture": st.column_config.TextColumn("N° Facture"),
+            "Type": st.column_config.SelectboxColumn(
+                "Type",
+                options=["FACTURE", "AVOIR"]
+            ),
+            "Montant TTC": st.column_config.TextColumn("Montant TTC"),
+            "Date": st.column_config.SelectboxColumn(
+                "📅 Période",
+                options=options_periode,
+                required=True
+            ),
+            "Statut": st.column_config.SelectboxColumn(
+                "Statut",
+                options=["À valider", "Validé ✅", "❌ Erreur", "En attente ⏳"]
             )
+        }
+    )
 
-elif fichiers and not api_key:
-    st.warning("⚠️ Entrez votre clé API Gemini dans le menu à gauche pour démarrer")
+    # ─── STATISTIQUES ────────────────────────────────────────────────────────
+    st.markdown("### 📈 Statistiques")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f"""
+        <div class="card" style="text-align:center;">
+            <div style="font-size:2rem;">🧾</div>
+            <div style="font-size:1.8rem; font-weight:700; color:#5b6abf;">{len(df_edit)}</div>
+            <div style="color:#9aa0c4;">Factures traitées</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        nb_valides = len(df_edit[df_edit["Statut"] == "Validé ✅"])
+        st.markdown(f"""
+        <div class="card" style="text-align:center;">
+            <div style="font-size:2rem;">✅</div>
+            <div style="font-size:1.8rem; font-weight:700; color:#2d6b4a;">{nb_valides}</div>
+            <div style="color:#9aa0c4;">Validées</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col3:
+        nb_erreurs = len(df_edit[df_edit["Statut"].str.startswith("❌", na=False)])
+        st.markdown(f"""
+        <div class="card" style="text-align:center;">
+            <div style="font-size:2rem;">❌</div>
+            <div style="font-size:1.8rem; font-weight:700; color:#c0392b;">{nb_erreurs}</div>
+            <div style="color:#9aa0c4;">Erreurs</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ─── EXPORT EXCEL ────────────────────────────────────────────────────────
+    buffer = io.BytesIO()
+    df_edit.to_excel(buffer, index=False, engine="openpyxl")
+    buffer.seek(0)
+
+    col_dl = st.columns([1, 2, 1])
+    with col_dl[1]:
+        st.download_button(
+            label="📥 Télécharger Excel",
+            data=buffer,
+            file_name=f"factures_{mois_rapide}_{annee_rapide}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
 
 elif not fichiers:
     st.markdown("""
@@ -266,3 +285,6 @@ elif not fichiers:
         <p style="font-size:1.1rem;">Uploadez vos factures ci-dessus pour commencer</p>
     </div>
     """, unsafe_allow_html=True)
+
+elif fichiers and not api_key:
+    st.warning("⚠️ Entrez votre clé API Gemini dans le menu à gauche pour démarrer")
