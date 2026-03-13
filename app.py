@@ -32,16 +32,11 @@ def extraire_donnees(image, model):
     Réponds UNIQUEMENT avec le JSON, rien d'autre.
     
     {
-        "fournisseur": "nom du fournisseur",
+        "fournisseur_client": "nom du fournisseur OU du client selon le sens de la facture",
         "numero_facture": "numéro de facture",
-        "date_facture": "date de la facture",
-        "date_echeance": "date d'échéance si présente",
-        "montant_ht": "montant hors taxes",
-        "tva": "montant TVA",
-        "montant_ttc": "montant total TTC",
-        "devise": "devise (EUR, USD...)",
-        "client": "nom du client/destinataire",
-        "description": "description courte des produits/services"
+        "type": "type de document : Facture / Avoir / Note de frais / Facture pro-forma",
+        "montant_facture": "montant TTC total de la facture",
+        "date_facture": "date de la facture ou date du fait générateur"
     }
     
     Si une information est absente, mets null.
@@ -50,13 +45,13 @@ def extraire_donnees(image, model):
     response = model.generate_content([prompt, image])
     text = response.text.strip()
     
-    # Nettoyer le JSON
     if "```json" in text:
         text = text.split("```json")[1].split("```")[0].strip()
     elif "```" in text:
         text = text.split("```")[1].split("```")[0].strip()
     
     return json.loads(text)
+
 
 # Upload fichiers
 fichiers = st.file_uploader(
@@ -104,11 +99,22 @@ if fichiers and api_key:
         df = pd.DataFrame(resultats)
         
         # Réorganiser colonnes
-        cols = ["fichier", "statut", "fournisseur", "numero_facture", 
-                "date_facture", "date_echeance", "montant_ht", 
-                "tva", "montant_ttc", "devise", "client", "description"]
+               cols = ["fichier", "statut", "fournisseur_client", "numero_facture", 
+                "type", "montant_facture", "date_facture"]
         cols = [c for c in cols if c in df.columns]
         df = df[cols]
+
+        # Renommer pour affichage
+        df = df.rename(columns={
+            "fichier": "Fichier",
+            "statut": "Statut",
+            "fournisseur_client": "Nom fournisseur ou client",
+            "numero_facture": "N° facture",
+            "type": "Type",
+            "montant_facture": "Montant facture",
+            "date_facture": "Date de facture (ou fait générateur)"
+        })
+
         
         st.dataframe(df, use_container_width=True)
         
