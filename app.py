@@ -91,66 +91,35 @@ with st.sidebar:
     annee_choisie = st.number_input("Année", min_value=2020, max_value=2030, value=2026)
     
     st.markdown("---")
-    st.markdown("### 📋 Colonnes Excel")
-    colonnes_actives = st.multiselect(
-        "Choisir les colonnes",
-        ["Fournisseur / Client", "N° Facture", "Type", "Montant TTC", "Date", "Statut"],
-        default=["Fournisseur / Client", "N° Facture", "Type", "Montant TTC", "Date", "Statut"]
-    )
+    st.markdown("### ℹ️ Infos")
+    st.info("Formats supportés : PDF, PNG, JPG, JPEG")
 
-# ─── HEADER ──────────────────────────────────────────────────────────────────
+# ─── TITRE PRINCIPAL ─────────────────────────────────────────────────────────
 st.markdown("# 🧾 Extracteur de Factures")
-st.markdown(f"<p style='color:#9aa0c4; font-size:1.1rem;'>Période sélectionnée : <b>{mois_choisi} {annee_choisie}</b></p>", unsafe_allow_html=True)
+st.markdown("Uploadez vos factures et exportez-les en Excel automatiquement.")
 
 # ─── UPLOAD ──────────────────────────────────────────────────────────────────
-st.markdown('<div class="card">', unsafe_allow_html=True)
 fichiers = st.file_uploader(
-    "📂 Déposez vos factures ici (PDF ou images)",
+    "📎 Déposez vos fichiers ici",
     type=["pdf", "png", "jpg", "jpeg"],
     accept_multiple_files=True
 )
-st.markdown('</div>', unsafe_allow_html=True)
 
 # ─── TRAITEMENT ──────────────────────────────────────────────────────────────
 if fichiers and api_key:
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    if st.button("🚀 Analyser les factures", type="primary", use_container_width=True):
 
-    if st.button("🚀 Extraire les données", type="primary", use_container_width=True):
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
         resultats = []
-        total = len(fichiers)
-
-        # Barre de progression avec chat
-        chat_placeholder = st.empty()
-        progress_bar = st.progress(0)
+        progress = st.progress(0)
         status_text = st.empty()
 
-        messages_chat = [
-            "🐱 Je lis vos factures...",
-            "🐱 J'analyse les montants...",
-            "🐱 Je repère les fournisseurs...",
-            "🐱 Presque fini...",
-            "🐱 Je finalise tout ça !",
-        ]
-
         for i, fichier in enumerate(fichiers):
-            # Message chat animé
-            msg_index = min(i, len(messages_chat) - 1)
-            chat_placeholder.markdown(f"""
-            <div style="background:white; border-radius:16px; padding:1rem; 
-                        border:2px solid #e0e6ff; text-align:center;
-                        font-size:1.2rem; color:#5b6abf; margin-bottom:0.5rem;">
-                {messages_chat[msg_index]}
-                <br><small style="color:#9aa0c4;">{fichier.name}</small>
-            </div>
-            """, unsafe_allow_html=True)
-
-            progress_bar.progress((i + 1) / total)
-            status_text.markdown(f"<p style='color:#9aa0c4; text-align:center;'>Fichier {i+1} / {total}</p>", unsafe_allow_html=True)
-
+            status_text.markdown(f"⏳ Analyse de **{fichier.name}**...")
+            
             try:
-                # Lecture fichier
                 if fichier.type == "application/pdf":
                     pdf = fitz.open(stream=fichier.read(), filetype="pdf")
                     page = pdf[0]
@@ -159,21 +128,28 @@ if fichiers and api_key:
                 else:
                     img = Image.open(fichier)
 
-                # Prompt Gemini
-                prompt = """Analyse cette facture et retourne UNIQUEMENT un JSON avec ces champs :
+                prompt = """Tu es un expert comptable. Analyse cette facture.
+Retourne UNIQUEMENT un objet JSON valide, sans markdown, sans explication, sans ```.
+Format strict :
 {
   "fournisseur_client": "nom du fournisseur ou client",
   "numero_facture": "numéro de facture",
-  "type": "Facture ou Avoir ou Note de frais",
-  "montant_facture": "montant TTC avec symbole €",
+  "type": "Facture",
+  "montant_facture": "montant TTC en chiffres uniquement ex: 1250.00",
   "date_facture": "date au format JJ/MM/AAAA",
   "statut": "À valider"
-}
-Réponds UNIQUEMENT avec le JSON, sans texte autour."""
+}"""
 
                 response = model.generate_content([prompt, img])
                 texte = response.text.strip()
+
+                # Nettoyage robuste
                 texte = texte.replace("```json", "").replace("```", "").strip()
+                debut = texte.find("{")
+                fin = texte.rfind("}") + 1
+                if debut != -1 and fin > debut:
+                    texte = texte[debut:fin]
+
                 data = json.loads(texte)
                 data["fichier"] = fichier.name
                 resultats.append(data)
@@ -189,92 +165,60 @@ Réponds UNIQUEMENT avec le JSON, sans texte autour."""
                     "fichier": fichier.name
                 })
 
-        # Fin
-        chat_placeholder.markdown("""
-        <div style="background:white; border-radius:16px; padding:1rem; 
-                    border:2px solid #b8f0c8; text-align:center;
-                    font-size:1.2rem; color:#2d6b4a; margin-bottom:0.5rem;">
-            🐱 Terminé ! Voici vos résultats 🎉
-        </div>
-        """, unsafe_allow_html=True)
-        progress_bar.progress(1.0)
+            progress.progress((i + 1) / len(fichiers))
 
-        # ─── DATAFRAME ───────────────────────────────────────────────────────
+        status_text.markdown("✅ Analyse terminée !")
+
+        # ─── CONSTRUCTION DU DATAFRAME ────────────────────────────────────────
         df = pd.DataFrame(resultats)
 
-        # Formatage montant
-        if "montant_facture" in df.columns:
-            df["montant_facture"] = pd.to_numeric(
-                df["montant_facture"]
-                .astype(str)
-                .str.replace("€", "", regex=False)
-                .str.replace(" ", "", regex=False)
-                .str.replace(",", ".", regex=False),
-                errors="coerce"
-            ).apply(lambda x: f"{x:,.2f} €" if pd.notna(x) else "")
-
-        # Formatage date
-        if "date_facture" in df.columns:
-            df["date_facture"] = pd.to_datetime(
-                df["date_facture"], dayfirst=True, errors="coerce"
-            ).dt.strftime("%m/%Y").fillna("")
-
-        df = df.rename(columns={
+        colonnes_map = {
             "fournisseur_client": "Fournisseur / Client",
             "numero_facture": "N° Facture",
             "type": "Type",
             "montant_facture": "Montant TTC",
             "date_facture": "Date",
-            "statut": "Statut"
-        })
+            "statut": "Statut",
+            "fichier": "Fichier"
+        }
+        df = df.rename(columns=colonnes_map)
 
-        # Filtrer colonnes actives
-        df = df[[c for c in colonnes_actives if c in df.columns]]
+        colonnes_finales = ["Fournisseur / Client", "N° Facture", "Type", "Montant TTC", "Date", "Statut", "Fichier"]
+        for col in colonnes_finales:
+            if col not in df.columns:
+                df[col] = ""
+        df = df[colonnes_finales]
 
-        # ─── ÉDITEUR AVEC DATE MODIFIABLE ────────────────────────────────────
+        # ─── TABLEAU ÉDITABLE ────────────────────────────────────────────────
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown(f"### 📊 Résultats — {mois_choisi} {annee_choisie}")
 
-        mois_num = {
-            "Janvier": "01", "Février": "02", "Mars": "03", "Avril": "04",
-            "Mai": "05", "Juin": "06", "Juillet": "07", "Août": "08",
-            "Septembre": "09", "Octobre": "10", "Novembre": "11", "Décembre": "12"
-        }
-
-        options_dates = [
-            f"{m}/{annee_choisie:04d}" for m in [
-                "01","02","03","04","05","06",
-                "07","08","09","10","11","12"
-            ]
+        mois_options = [
+            f"{str(m).zfill(2)}/{annee_choisie}" for m in range(1, 13)
         ]
-
-        column_config = {}
-        if "Date" in df.columns:
-            column_config["Date"] = st.column_config.SelectboxColumn(
-                "Date",
-                options=options_dates,
-                required=False,
-                help="Modifiez le mois si besoin"
-            )
-        if "Statut" in df.columns:
-            column_config["Statut"] = st.column_config.SelectboxColumn(
-                "Statut",
-                options=["À valider", "Validé ✅", "Envoyé 📤", "Refusé ❌"],
-                required=False
-            )
-
-        colonnes_non_editables = [c for c in df.columns if c not in ["Date", "Statut"]]
 
         df_edit = st.data_editor(
             df,
             use_container_width=True,
-            height=300,
-            column_config=column_config,
-            disabled=colonnes_non_editables
+            height=350,
+            column_config={
+                "Date": st.column_config.SelectboxColumn(
+                    "Date",
+                    options=mois_options,
+                    required=False,
+                    help="Modifiez le mois si besoin"
+                ),
+                "Statut": st.column_config.SelectboxColumn(
+                    "Statut",
+                    options=["À valider", "Validé ✅", "Envoyé 📤", "❌ Erreur"],
+                    required=False
+                )
+            },
+            disabled=["Fournisseur / Client", "N° Facture", "Type", "Montant TTC", "Fichier"]
         )
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # ─── MÉTRIQUES ───────────────────────────────────────────────────────
+        # ─── STATISTIQUES ────────────────────────────────────────────────────
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown(f"""
@@ -285,7 +229,7 @@ Réponds UNIQUEMENT avec le JSON, sans texte autour."""
             </div>
             """, unsafe_allow_html=True)
         with col2:
-            nb_valides = len(df_edit[df_edit.get("Statut", pd.Series()) == "Validé ✅"]) if "Statut" in df_edit.columns else 0
+            nb_valides = len(df_edit[df_edit["Statut"] == "Validé ✅"]) if "Statut" in df_edit.columns else 0
             st.markdown(f"""
             <div class="card" style="text-align:center;">
                 <div style="font-size:2rem;">✅</div>
@@ -294,7 +238,7 @@ Réponds UNIQUEMENT avec le JSON, sans texte autour."""
             </div>
             """, unsafe_allow_html=True)
         with col3:
-            nb_erreurs = len(df_edit[df_edit.get("Statut", pd.Series()).str.startswith("❌", na=False)]) if "Statut" in df_edit.columns else 0
+            nb_erreurs = len(df_edit[df_edit["Statut"].str.startswith("❌", na=False)]) if "Statut" in df_edit.columns else 0
             st.markdown(f"""
             <div class="card" style="text-align:center;">
                 <div style="font-size:2rem;">❌</div>
@@ -303,7 +247,7 @@ Réponds UNIQUEMENT avec le JSON, sans texte autour."""
             </div>
             """, unsafe_allow_html=True)
 
-        # ─── EXPORT ──────────────────────────────────────────────────────────
+        # ─── EXPORT EXCEL ────────────────────────────────────────────────────
         buffer = io.BytesIO()
         df_edit.to_excel(buffer, index=False, engine="openpyxl")
         buffer.seek(0)
