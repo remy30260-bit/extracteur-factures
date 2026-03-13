@@ -168,7 +168,7 @@ def extraire_json(texte):
         texte = texte[start:end]
     return json.loads(texte)
 
-def analyser_facture(fichier, client_genai):
+def analyser_facture(fichier, model):
     fichier.seek(0)
     raw = fichier.read()
 
@@ -195,7 +195,6 @@ def analyser_facture(fichier, client_genai):
 }
 Réponds UNIQUEMENT avec le JSON, sans texte autour."""
 
-    model = client_genai.GenerativeModel("gemini-2.5-flash-preview")
     response = model.generate_content([
         {"mime_type": mime, "data": img_bytes},
         prompt
@@ -231,13 +230,13 @@ with st.sidebar:
     st.markdown("### 🔑 Configuration")
     api_key = st.text_input("Clé API Gemini", type="password", placeholder="AIza...")
 
-    if api_key and st.sidebar.button("🔍 Modèles dispo"):
-    genai.configure(api_key=api_key)
-    for m in genai.list_models():
-        if "generateContent" in m.supported_generation_methods:
-            st.sidebar.code(m.name)
+    # ✅ CORRECTION 1 : indentation correcte du bloc if
+    if api_key and st.button("🔍 Modèles dispo"):
+        genai.configure(api_key=api_key)
+        for m in genai.list_models():
+            if "generateContent" in m.supported_generation_methods:
+                st.code(m.name)
 
-    
     st.markdown("---")
     st.markdown("### 📂 Filtres")
     
@@ -273,8 +272,10 @@ fichiers = st.file_uploader(
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 if fichiers and api_key:
-    
-    client_genai = genai.configure(api_key=api_key)
+
+    # ✅ CORRECTION 2 : configure() ne retourne rien, créer le model séparément
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-2.5-flash-preview")
 
     if st.button("🐾 Analyser les factures", use_container_width=False):
         resultats = []
@@ -294,7 +295,7 @@ if fichiers and api_key:
             """, unsafe_allow_html=True)
             
             try:
-                r = analyser_facture(fichier, genai)
+                r = analyser_facture(fichier, model)
             except Exception as e:
                 r = {
                     "Fichier": fichier.name, "Date": "", "Mois": "", "Année": "",
