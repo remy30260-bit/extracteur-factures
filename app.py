@@ -93,7 +93,7 @@ if fichiers and api_key:
 
     if analyser:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
 
         resultats = []
         progress = st.progress(0)
