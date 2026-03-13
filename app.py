@@ -230,6 +230,13 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 🔑 Configuration")
     api_key = st.text_input("Clé API Gemini", type="password", placeholder="AIza...")
+
+    if api_key and st.sidebar.button("🔍 Modèles dispo"):
+    genai.configure(api_key=api_key)
+    for m in genai.list_models():
+        if "generateContent" in m.supported_generation_methods:
+            st.sidebar.code(m.name)
+
     
     st.markdown("---")
     st.markdown("### 📂 Filtres")
