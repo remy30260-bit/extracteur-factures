@@ -13,7 +13,6 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
     
     * { font-family: 'Nunito', sans-serif; }
-    
     .stApp { background-color: #fdf6f0; }
     
     [data-testid="stSidebar"] {
@@ -24,7 +23,6 @@ st.markdown("""
     h1 { color: #a0522d; font-weight: 800; }
     h2, h3 { color: #c8956c; }
     
-    /* Bouton principal */
     .stButton > button {
         background: linear-gradient(135deg, #f0a070, #e8856a);
         color: white; border: none; border-radius: 20px;
@@ -37,7 +35,6 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(200,149,108,0.6);
     }
     
-    /* Bouton download */
     .stDownloadButton > button {
         background: linear-gradient(135deg, #a8d8a8, #7fc87f);
         color: #2d5a2d; border: none; border-radius: 20px;
@@ -47,47 +44,34 @@ st.markdown("""
     }
     .stDownloadButton > button:hover { transform: translateY(-2px); }
     
-    /* Cards */
     .card {
         background: white; border-radius: 20px; padding: 1.5rem;
         box-shadow: 0 4px 20px rgba(200,149,108,0.15);
         margin-bottom: 1rem; border: 2px solid #f5e6d8;
     }
     
-    /* Upload zone */
     [data-testid="stFileUploader"] {
         background: white; border-radius: 20px;
         padding: 1rem; border: 2px dashed #f0a070;
     }
     
-    /* Progress bar */
     .stProgress > div > div {
         background: linear-gradient(90deg, #f0a070, #e8856a, #c8956c);
         border-radius: 10px;
     }
     
-    /* Tableau */
     [data-testid="stDataFrame"] {
         border-radius: 16px;
         overflow: hidden;
         border: 2px solid #f5e6d8;
     }
     
-    /* Selectbox & inputs */
     .stSelectbox > div > div {
         background: white;
         border-radius: 12px;
         border: 2px solid #f0d5c0;
     }
-    
-    /* Alert/warning */
-    .stWarning {
-        background: #fff8f0;
-        border-left: 4px solid #f0a070;
-        border-radius: 12px;
-    }
 
-    /* Chat bubble style */
     .chat-bubble {
         background: white;
         border-radius: 20px 20px 20px 4px;
@@ -102,6 +86,20 @@ st.markdown("""
         display: flex;
         align-items: center;
         margin: 1rem 0;
+    }
+
+    /* Fix ASCII art */
+    .cat-ascii {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 1rem;
+        line-height: 1.4;
+        color: #c8956c;
+        white-space: pre;
+        background: none;
+        border: none;
+        margin: 0;
+        padding: 0;
+        text-align: left;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -141,23 +139,24 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
+    # ASCII chat sidebar - corrigé
     st.markdown("""
-    <div style="text-align:center; color:#d4a882; font-size:0.75rem; margin-top:1rem;">
-        <pre style="color:#c8956c; font-size:0.7rem; line-height:1.2;">
- /\_/\  
-( ^.^ ) 
- > 🐾 <
-        </pre>
-        Miaouu~ je veille sur vos factures
+    <div style="text-align:center; margin-top:1rem;">
+        <pre class="cat-ascii" style="display:inline-block; text-align:left;">
+ /\_/\\
+( ^.^ )
+ > 🐾 &lt;</pre>
+        <p style="color:#d4a882; font-size:0.75rem; margin-top:0.3rem;">
+            Miaouu~ je veille sur vos factures
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
 # ─── HEADER ──────────────────────────────────────────────────────────────────
 col_logo, col_title = st.columns([1, 5])
 with col_logo:
-    st.markdown("""
-    <div style="font-size:4rem; text-align:center; margin-top:0.5rem;">🐱</div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div style="font-size:4rem; text-align:center; margin-top:0.5rem;">🐱</div>',
+                unsafe_allow_html=True)
 with col_title:
     st.markdown("""
     <h1 style="margin-bottom:0;">FactureCat</h1>
@@ -218,25 +217,31 @@ def extraire_facture(fichier, model, mois, annee):
     prompt = f"""Analyse cette facture et extrais les informations en JSON.
 Période comptable : {mois} {annee}
 
-Retourne UNIQUEMENT ce JSON (sans markdown) :
+Retourne UNIQUEMENT ce JSON brut, sans markdown, sans backticks :
 {{
   "date": "JJ/MM/AAAA ou vide",
   "fournisseur": "nom du fournisseur",
   "numero_facture": "numéro ou vide",
-  "montant_ht": "montant HT en euros (nombre uniquement)",
+  "montant_ht": "montant HT en euros (nombre uniquement, ex: 100.00)",
   "tva": "montant TVA en euros (nombre uniquement)",
   "montant_ttc": "montant TTC en euros (nombre uniquement)",
-  "description": "courte description",
+  "description": "courte description du contenu",
   "categorie": "Transport/Repas/Hébergement/Fournitures/Services/Autres"
-}}"""
+}}
+
+IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
 
     response = model.generate_content([prompt, image])
     text = response.text.strip()
-    if text.startswith("```"):
+    
+    # Nettoyage robuste
+    if "```" in text:
         text = text.split("```")[1]
         if text.startswith("json"):
             text = text[4:]
-    return json.loads(text.strip())
+    text = text.strip()
+    
+    return json.loads(text)
 
 # ─── BOUTON EXTRACTION ───────────────────────────────────────────────────────
 if fichiers and api_key:
@@ -248,7 +253,7 @@ if fichiers and api_key:
         
         if lancer:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            model = genai.GenerativeModel("gemini-2.5-flash")
             
             st.markdown("""
             <div class="cat-container">
@@ -299,13 +304,13 @@ if fichiers and api_key:
                 <div style="font-size:2.5rem;">😻</div>
                 <div class="chat-bubble">
                     <span style="color:#a0522d; font-weight:700;">
-                        Purrrfect ! Voici ce que j'ai trouvé 🐾 Vous pouvez modifier directement dans le tableau !
-                    </span>
+                        Purrrfect ! Voici ce que j'ai trouvé 🐾
+                    </span><br>
+                    <span style="color:#c8956c;">Vous pouvez modifier directement dans le tableau !</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
-            # Période rapide
             col_p1, col_p2, col_p3 = st.columns([2, 2, 4])
             with col_p1:
                 mois_rapide = st.selectbox("📅 Mois", mois_list,
@@ -361,9 +366,7 @@ if fichiers and api_key:
                 st.markdown(f"""
                 <div class="card" style="text-align:center;">
                     <div style="font-size:2.5rem;">🐱</div>
-                    <div style="font-size:2rem; font-weight:800; color:#a0522d;">
-                        {len(df_edit)}
-                    </div>
+                    <div style="font-size:2rem; font-weight:800; color:#a0522d;">{len(df_edit)}</div>
                     <div style="color:#c8956c;">Factures traitées</div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -373,9 +376,7 @@ if fichiers and api_key:
                 st.markdown(f"""
                 <div class="card" style="text-align:center;">
                     <div style="font-size:2.5rem;">😸</div>
-                    <div style="font-size:2rem; font-weight:800; color:#2d6b4a;">
-                        {nb_valides}
-                    </div>
+                    <div style="font-size:2rem; font-weight:800; color:#2d6b4a;">{nb_valides}</div>
                     <div style="color:#c8956c;">Validées</div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -385,9 +386,7 @@ if fichiers and api_key:
                 st.markdown(f"""
                 <div class="card" style="text-align:center;">
                     <div style="font-size:2.5rem;">🙀</div>
-                    <div style="font-size:2rem; font-weight:800; color:#c0392b;">
-                        {nb_erreurs}
-                    </div>
+                    <div style="font-size:2rem; font-weight:800; color:#c0392b;">{nb_erreurs}</div>
                     <div style="color:#c8956c;">Erreurs</div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -401,9 +400,7 @@ if fichiers and api_key:
                 st.markdown(f"""
                 <div class="card" style="text-align:center;">
                     <div style="font-size:2.5rem;">💰</div>
-                    <div style="font-size:1.5rem; font-weight:800; color:#a0522d;">
-                        {total_str}
-                    </div>
+                    <div style="font-size:1.5rem; font-weight:800; color:#a0522d;">{total_str}</div>
                     <div style="color:#c8956c;">Total TTC</div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -411,16 +408,19 @@ if fichiers and api_key:
             # ─── PRÉVISUALISATION ────────────────────────────────────────────
             st.markdown("### 🔍 Prévisualisation des fichiers")
             
-            cols_prev = st.columns(min(len(fichiers), 3))
+            nb_cols = min(len(fichiers), 3)
+            cols_prev = st.columns(nb_cols)
+            
             for idx, fichier in enumerate(fichiers):
                 fichier.seek(0)
-                with cols_prev[idx % 3]:
+                with cols_prev[idx % nb_cols]:
                     st.markdown(f"""
                     <div class="card" style="text-align:center;">
-                        <p style="color:#a0522d; font-weight:700; 
+                        <p style="color:#a0522d; font-weight:700;
                            font-size:0.85rem; margin-bottom:0.5rem;">
                             🐾 {fichier.name}
                         </p>
+                    </div>
                     """, unsafe_allow_html=True)
                     
                     if fichier.type == "application/pdf":
@@ -431,16 +431,11 @@ if fichiers and api_key:
                     else:
                         st.image(Image.open(fichier), use_container_width=True)
                     
-                    # Statut de cette facture
                     if idx < len(resultats):
                         statut = resultats[idx].get("statut", "")
                         st.markdown(f"""
-                        <p style="text-align:center; margin-top:0.5rem;">
-                            {statut}
-                        </p>
+                        <p style="text-align:center; margin-top:0.5rem;">{statut}</p>
                         """, unsafe_allow_html=True)
-                    
-                    st.markdown("</div>", unsafe_allow_html=True)
             
             # ─── EXPORT ──────────────────────────────────────────────────────
             st.markdown("---")
@@ -458,13 +453,24 @@ if fichiers and api_key:
                     use_container_width=True
                 )
             
+            # ─── FOOTER ASCII CORRIGÉ ─────────────────────────────────────
+            st.markdown("---")
             st.markdown("""
-            <div style="text-align:center; color:#c8956c; margin-top:1rem;">
-                <pre style="color:#d4a882; font-size:0.8rem; line-height:1.3; display:inline-block;">
- /\_/\  
-( ^.^ ) ~  Purrfait travail !
- > 🐾 <
-                </pre>
+            <div style="text-align:center; padding: 1rem 0;">
+                <pre class="cat-ascii" style="display:inline-block; text-align:left; font-size:1.1rem;">
+  /\_____/\\
+ /  o   o  \\
+( ==  ^  == )
+ )         (
+(           )
+( (  )   (  ) )
+(__(__)___(__)__)</pre>
+                <p style="color:#a0522d; font-weight:700; margin-top:0.5rem;">
+                    Purrrfait travail ! 🐾
+                </p>
+                <p style="color:#c8956c; font-size:0.85rem;">
+                    FactureCat — Votre comptable félin 🐱
+                </p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -483,19 +489,18 @@ elif fichiers and not api_key:
 
 elif not fichiers:
     st.markdown("""
-    <div style="text-align:center; padding:3rem; color:#c8956c;">
-        <pre style="color:#d4a882; font-size:1.2rem; line-height:1.4; display:inline-block;">
-  /\_____/\
- /  o   o  \
+    <div style="text-align:center; padding: 3rem 0;">
+        <pre class="cat-ascii" style="display:inline-block; text-align:left; font-size:1.2rem;">
+  /\_____/\\
+ /  o   o  \\
 ( ==  ^  == )
  )         (
 (           )
 ( (  )   (  ) )
-(__(__)___(__)__)
-        </pre>
-        <p style="font-size:1.2rem; font-weight:700; color:#a0522d;">
-            Uploadez vos factures ci-dessus pour commencer !
+(__(__)___(__)__)</pre>
+        <p style="font-size:1.2rem; font-weight:700; color:#a0522d; margin-top:1rem;">
+            Uploadez vos factures pour commencer !
         </p>
-        <p style="font-size:0.95rem;">Je suis prêt à analyser vos documents 🐾</p>
+        <p style="color:#c8956c;">Je suis prêt à analyser vos documents 🐾</p>
     </div>
     """, unsafe_allow_html=True)
