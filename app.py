@@ -67,7 +67,7 @@ fichiers = st.file_uploader(
 
 if fichiers and api_key:
     if st.button("🚀 Extraire les données", type="primary"):
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         resultats = []
         
         progress = st.progress(0)
