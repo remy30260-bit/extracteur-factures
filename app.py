@@ -88,21 +88,38 @@ st.markdown("""
         margin: 1rem 0;
     }
 
-    /* Fix ASCII art */
-    .cat-ascii {
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 1rem;
-        line-height: 1.4;
-        color: #c8956c;
-        white-space: pre;
-        background: none;
-        border: none;
-        margin: 0;
-        padding: 0;
-        text-align: left;
+    pre.cat-ascii {
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 1.1rem !important;
+        line-height: 1.5 !important;
+        color: #c8956c !important;
+        white-space: pre !important;
+        word-break: keep-all !important;
+        overflow-wrap: normal !important;
+        background: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: inline-block !important;
+        text-align: left !important;
+        width: auto !important;
+        max-width: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
+
+# ─── ASCII ART (espaces non-sécables) ────────────────────────────────────────
+CAT_ASCII_GRAND = """&#160;&#160;/\\_____/\\
+&#160;/&#160;&#160;o&#160;&#160;&#160;o&#160;&#160;\\
+(&#160;==&#160;&#160;^&#160;&#160;==&#160;)
+&#160;)&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;(
+(&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;)
+(&#160;(&#160;&#160;)&#160;&#160;&#160;(&#160;&#160;)&#160;)
+(__(__))___(__)__)"""
+
+CAT_ASCII_PETIT = """&#160;/\\_/\\
+(&#160;^.^&#160;)
+&#160;&gt;&#160;🐾&#160;&lt;"""
 
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -139,13 +156,9 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # ASCII chat sidebar - corrigé
-    st.markdown("""
+    st.markdown(f"""
     <div style="text-align:center; margin-top:1rem;">
-        <pre class="cat-ascii" style="display:inline-block; text-align:left;">
- /\_/\\
-( ^.^ )
- > 🐾 &lt;</pre>
+        <pre class="cat-ascii" style="font-size:0.9rem !important;">{CAT_ASCII_PETIT}</pre>
         <p style="color:#d4a882; font-size:0.75rem; margin-top:0.3rem;">
             Miaouu~ je veille sur vos factures
         </p>
@@ -234,7 +247,6 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
     response = model.generate_content([prompt, image])
     text = response.text.strip()
     
-    # Nettoyage robuste
     if "```" in text:
         text = text.split("```")[1]
         if text.startswith("json"):
@@ -453,19 +465,12 @@ if fichiers and api_key:
                     use_container_width=True
                 )
             
-            # ─── FOOTER ASCII CORRIGÉ ─────────────────────────────────────
+            # ─── FOOTER ──────────────────────────────────────────────────────
             st.markdown("---")
-            st.markdown("""
+            st.markdown(f"""
             <div style="text-align:center; padding: 1rem 0;">
-                <pre class="cat-ascii" style="display:inline-block; text-align:left; font-size:1.1rem;">
-  /\_____/\\
- /  o   o  \\
-( ==  ^  == )
- )         (
-(           )
-( (  )   (  ) )
-(__(__)___(__)__)</pre>
-                <p style="color:#a0522d; font-weight:700; margin-top:0.5rem;">
+                <pre class="cat-ascii">{CAT_ASCII_GRAND}</pre>
+                <p style="color:#a0522d; font-weight:700; margin-top:0.8rem;">
                     Purrrfait travail ! 🐾
                 </p>
                 <p style="color:#c8956c; font-size:0.85rem;">
@@ -488,16 +493,9 @@ elif fichiers and not api_key:
     """, unsafe_allow_html=True)
 
 elif not fichiers:
-    st.markdown("""
+    st.markdown(f"""
     <div style="text-align:center; padding: 3rem 0;">
-        <pre class="cat-ascii" style="display:inline-block; text-align:left; font-size:1.2rem;">
-  /\_____/\\
- /  o   o  \\
-( ==  ^  == )
- )         (
-(           )
-( (  )   (  ) )
-(__(__)___(__)__)</pre>
+        <pre class="cat-ascii" style="font-size:1.2rem !important;">{CAT_ASCII_GRAND}</pre>
         <p style="font-size:1.2rem; font-weight:700; color:#a0522d; margin-top:1rem;">
             Uploadez vos factures pour commencer !
         </p>
