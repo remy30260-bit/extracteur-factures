@@ -195,7 +195,7 @@ def analyser_facture(fichier, client_genai):
 }
 Réponds UNIQUEMENT avec le JSON, sans texte autour."""
 
-    model = client_genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
+    model = client_genai.GenerativeModel("gemini-2.5-flash-preview")
     response = model.generate_content([
         {"mime_type": mime, "data": img_bytes},
         prompt
