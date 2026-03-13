@@ -47,3 +47,79 @@ def extraire_donnees(image, model):
     if "```json" in text:
         text = text.split("```json")[1].split("```")[0].strip()
     elif "```" in text:
+        text = text.split("```")[1].split("```")[0].strip()
+    
+    return json.loads(text)
+
+fichiers = st.file_uploader(
+    "📁 Uploadez vos factures",
+    type=["pdf", "png", "jpg", "jpeg"],
+    accept_multiple_files=True
+)
+
+if fichiers and api_key:
+    if st.button("🚀 Extraire les données", type="primary"):
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        resultats = []
+        
+        progress = st.progress(0)
+        status = st.empty()
+        
+        for i, fichier in enumerate(fichiers):
+            status.text(f"Traitement : {fichier.name}...")
+            
+            try:
+                images = []
+                
+                if fichier.type == "application/pdf":
+                    images = pdf_to_images(fichier.read())
+                else:
+                    images = [Image.open(fichier)]
+                
+                donnees = extraire_donnees(images[0], model)
+                donnees["fichier"] = fichier.name
+                donnees["statut"] = "✅ OK"
+                resultats.append(donnees)
+                
+            except Exception as e:
+                resultats.append({
+                    "fichier": fichier.name,
+                    "statut": f"❌ Erreur: {str(e)}"
+                })
+            
+            progress.progress((i + 1) / len(fichiers))
+        
+        status.text("✅ Traitement terminé !")
+        
+        df = pd.DataFrame(resultats)
+        
+        cols = ["fournisseur_client", "numero_facture", "type", "montant_facture", "date_facture"]
+        cols = [c for c in cols if c in df.columns]
+        df = df[cols]
+        
+        df = df.rename(columns={
+            "fournisseur_client": "Nom fournisseur ou client",
+            "numero_facture": "N° facture",
+            "type": "Type",
+            "montant_facture": "Montant facture",
+            "date_facture": "Date de facture (ou fait générateur)"
+        })
+        
+        st.dataframe(df, use_container_width=True)
+        
+        buffer = io.BytesIO()
+        df.to_excel(buffer, index=False, engine="openpyxl")
+        buffer.seek(0)
+        
+        st.download_button(
+            label="📥 Télécharger Excel",
+            data=buffer,
+            file_name="factures_extraites.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+elif fichiers and not api_key:
+    st.warning("⚠️ Entrez votre clé API Gemini dans le menu à gauche")
+
+elif not fichiers:
+    st.info("👆 Uploadez vos factures pour commencer")
