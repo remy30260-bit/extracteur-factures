@@ -8,6 +8,23 @@ import io
 
 st.set_page_config(page_title="FactureCat 🐱", page_icon="🐱", layout="wide")
 
+# ─── ASCII ART ────────────────────────────────────────────────────────────────
+CAT_ASCII_GRAND = (
+    "&#160;&#160;/\\_____/\\\n"
+    "&#160;/&#160;&#160;o&#160;&#160;&#160;o&#160;&#160;\\\n"
+    "(&#160;==&#160;&#160;^&#160;&#160;==&#160;)\n"
+    "&#160;)&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;(\n"
+    "(&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;)\n"
+    "(&#160;(&#160;&#160;)&#160;&#160;&#160;(&#160;&#160;)&#160;)\n"
+    "(__(__))___(__)__)"
+)
+
+CAT_ASCII_PETIT = (
+    "&#160;/\\_/\\\n"
+    "(&#160;^.^&#160;)\n"
+    "&#160;(__)__)"
+)
+
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
@@ -81,11 +98,12 @@ st.markdown("""
         display: inline-block;
         margin-left: 1rem;
     }
-    
+
     .cat-container {
         display: flex;
         align-items: center;
-        margin: 1rem 0;
+        justify-content: center;
+        padding: 2rem;
     }
 
     pre.cat-ascii {
@@ -99,118 +117,26 @@ st.markdown("""
         background: none !important;
         border: none !important;
         padding: 0 !important;
-        margin: 0 !important;
+        margin: 0 auto !important;
         display: inline-block !important;
         text-align: left !important;
         width: auto !important;
         max-width: none !important;
     }
+
+    .kpi-box {
+        background: white;
+        border-radius: 12px;
+        padding: 0.6rem 0.8rem;
+        border: 2px solid #f5e6d8;
+        text-align: center;
+        height: 100%;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# ─── ASCII ART (espaces non-sécables) ────────────────────────────────────────
-CAT_ASCII_GRAND = """&#160;&#160;/\\_____/\\
-&#160;/&#160;&#160;o&#160;&#160;&#160;o&#160;&#160;\\
-(&#160;==&#160;&#160;^&#160;&#160;==&#160;)
-&#160;)&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;(
-(&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;)
-(&#160;(&#160;&#160;)&#160;&#160;&#160;(&#160;&#160;)&#160;)
-(__(__))___(__)__)"""
+# ─── FONCTIONS ────────────────────────────────────────────────────────────────
 
-CAT_ASCII_PETIT = """&#160;/\\_/\\
-(&#160;^.^&#160;)
-&#160;&gt;&#160;🐾&#160;&lt;"""
-
-# ─── SIDEBAR ─────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("""
-    <div style="text-align:center; padding: 1rem 0;">
-        <div style="font-size: 3rem;">🐱</div>
-        <h2 style="color:#a0522d; margin:0;">FactureCat</h2>
-        <p style="color:#c8956c; font-size:0.85rem;">Votre assistant comptable félin</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    st.markdown("### ⚙️ Configuration")
-    api_key = st.text_input("🔑 Clé API Gemini", type="password", placeholder="AIza...")
-    
-    st.markdown("---")
-    st.markdown("### 📅 Période")
-    mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
-                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-    mois_choisi = st.selectbox("Mois", mois_list, index=0)
-    annee_choisie = st.selectbox("Année", list(range(2023, 2031)), index=2)
-    
-    st.markdown("---")
-    st.markdown("""
-    <div class="card">
-        <p style="color:#a0522d; font-weight:700; margin:0 0 0.5rem 0;">📖 Guide rapide</p>
-        <p style="color:#c8956c; font-size:0.85rem; margin:0;">
-        1. 🔑 Entrez votre clé API<br>
-        2. 📁 Uploadez vos factures<br>
-        3. 🚀 Lancez l'extraction<br>
-        4. ✏️ Vérifiez les données<br>
-        5. 📥 Exportez en Excel
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-    <div style="text-align:center; margin-top:1rem;">
-        <pre class="cat-ascii" style="font-size:0.9rem !important;">{CAT_ASCII_PETIT}</pre>
-        <p style="color:#d4a882; font-size:0.75rem; margin-top:0.3rem;">
-            Miaouu~ je veille sur vos factures
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ─── HEADER ──────────────────────────────────────────────────────────────────
-col_logo, col_title = st.columns([1, 5])
-with col_logo:
-    st.markdown('<div style="font-size:4rem; text-align:center; margin-top:0.5rem;">🐱</div>',
-                unsafe_allow_html=True)
-with col_title:
-    st.markdown("""
-    <h1 style="margin-bottom:0;">FactureCat</h1>
-    <p style="color:#c8956c; margin-top:0; font-size:1.1rem;">
-        Extraction intelligente de factures 🐾
-    </p>
-    """, unsafe_allow_html=True)
-
-st.markdown("---")
-
-# ─── MASCOTTE ACCUEIL ────────────────────────────────────────────────────────
-st.markdown("""
-<div class="cat-container">
-    <div style="font-size:3.5rem;">🐱</div>
-    <div class="chat-bubble">
-        <strong style="color:#a0522d;">Bonjour ! Je suis FactureCat 🐾</strong><br>
-        <span style="color:#c8956c;">
-            Déposez vos factures ci-dessous et je m'occupe de tout extraire pour vous !
-        </span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ─── UPLOAD ──────────────────────────────────────────────────────────────────
-fichiers = st.file_uploader(
-    "🐾 Glissez vos factures ici",
-    type=["pdf", "jpg", "jpeg", "png"],
-    accept_multiple_files=True,
-    help="Formats acceptés : PDF, JPG, PNG"
-)
-
-if fichiers:
-    st.markdown(f"""
-    <div class="card" style="background: linear-gradient(135deg, #fff8f3, #fdf0e8);">
-        <span style="color:#a0522d; font-weight:700;">
-            🐱 Miaou ! {len(fichiers)} fichier(s) détecté(s) et prêt(s) à être analysé(s) 🐾
-        </span>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ─── FONCTIONS ───────────────────────────────────────────────────────────────
 def pdf_to_images(pdf_bytes):
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     images = []
@@ -220,264 +146,303 @@ def pdf_to_images(pdf_bytes):
         images.append(img)
     return images
 
-def extraire_facture(fichier, model, mois, annee):
+def image_to_bytes(img, fmt="PNG"):
+    buf = io.BytesIO()
+    img.save(buf, format=fmt)
+    return buf.getvalue()
+
+def extraire_json(texte):
+    texte = texte.strip()
+    if "```" in texte:
+        blocs = texte.split("```")
+        for b in blocs:
+            b2 = b.strip()
+            if b2.startswith("json"):
+                b2 = b2[4:].strip()
+            if b2.startswith("{"):
+                texte = b2
+                break
+    start = texte.find("{")
+    end   = texte.rfind("}") + 1
+    if start != -1 and end > start:
+        texte = texte[start:end]
+    return json.loads(texte)
+
+def analyser_facture(fichier, client_genai):
+    fichier.seek(0)
+    raw = fichier.read()
+
     if fichier.type == "application/pdf":
-        images = pdf_to_images(fichier.read())
-        image = images[0]
+        images = pdf_to_images(raw)
+        img_bytes = image_to_bytes(images[0])
+        mime = "image/png"
     else:
-        image = Image.open(fichier)
+        mime = fichier.type
+        img_bytes = raw
 
-    prompt = f"""Analyse cette facture et extrais les informations en JSON.
-Période comptable : {mois} {annee}
-
-Retourne UNIQUEMENT ce JSON brut, sans markdown, sans backticks :
-{{
+    prompt = """Tu es un expert comptable. Analyse cette facture et extrais les informations suivantes en JSON strict :
+{
   "date": "JJ/MM/AAAA ou vide",
+  "mois": "nom du mois en français ou vide",
+  "annee": "AAAA ou vide",
   "fournisseur": "nom du fournisseur",
   "numero_facture": "numéro ou vide",
-  "montant_ht": "montant HT en euros (nombre uniquement, ex: 100.00)",
-  "tva": "montant TVA en euros (nombre uniquement)",
-  "montant_ttc": "montant TTC en euros (nombre uniquement)",
-  "description": "courte description du contenu",
-  "categorie": "Transport/Repas/Hébergement/Fournitures/Services/Autres"
-}}
+  "montant_ht": nombre ou 0,
+  "tva": nombre ou 0,
+  "montant_ttc": nombre ou 0,
+  "categorie": "une catégorie parmi: Fournitures, Services, Logiciels, Transport, Restauration, Marketing, Immobilier, Utilities, Autre",
+  "description": "description courte en français"
+}
+Réponds UNIQUEMENT avec le JSON, sans texte autour."""
 
-IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
-
-    response = model.generate_content([prompt, image])
-    text = response.text.strip()
+    model = client_genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
+    response = model.generate_content([
+        {"mime_type": mime, "data": img_bytes},
+        prompt
+    ])
     
-    if "```" in text:
-        text = text.split("```")[1]
-        if text.startswith("json"):
-            text = text[4:]
-    text = text.strip()
-    
-    return json.loads(text)
+    data = extraire_json(response.text)
+    return {
+        "Fichier":         fichier.name,
+        "Date":            data.get("date", ""),
+        "Mois":            data.get("mois", ""),
+        "Année":           data.get("annee", ""),
+        "Fournisseur":     data.get("fournisseur", ""),
+        "N° Facture":      data.get("numero_facture", ""),
+        "Montant HT (€)":  data.get("montant_ht", 0),
+        "TVA (€)":         data.get("tva", 0),
+        "Montant TTC (€)": data.get("montant_ttc", 0),
+        "Catégorie":       data.get("categorie", "Autre"),
+        "Description":     data.get("description", ""),
+        "statut":          "✅ Validé 😸",
+    }
 
-# ─── BOUTON EXTRACTION ───────────────────────────────────────────────────────
+# ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown(f"""
+    <div style="text-align:center; padding: 1rem 0;">
+        <pre class="cat-ascii" style="font-size:0.85rem !important;">{CAT_ASCII_PETIT}</pre>
+        <h2 style="color:#a0522d; margin:0.5rem 0;">FactureCat</h2>
+        <p style="color:#c8956c; font-size:0.85rem;">Votre comptable félin 🐱</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    st.markdown("### 🔑 Configuration")
+    api_key = st.text_input("Clé API Gemini", type="password", placeholder="AIza...")
+    
+    st.markdown("---")
+    st.markdown("### 📂 Filtres")
+    
+    mois_liste = ["Tous", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+                  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+    mois_rapide  = st.selectbox("🗓️ Mois", mois_liste)
+    annee_rapide = st.selectbox("📆 Année", ["Toutes", "2024", "2025", "2026"])
+    
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align:center;">
+        <p style="color:#c8956c; font-size:0.8rem;">
+            Formats acceptés :<br>📄 PDF • 🖼️ PNG • JPG
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ─── HEADER ───────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="text-align:center; padding: 1rem 0 2rem 0;">
+    <h1 style="font-size:2.5rem; margin-bottom:0.2rem;">🐱 FactureCat</h1>
+    <p style="color:#c8956c; font-size:1.1rem;">Analysez vos factures avec l'IA en quelques secondes ✨</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ─── UPLOAD ───────────────────────────────────────────────────────────────────
+fichiers = st.file_uploader(
+    "📁 Déposez vos factures ici",
+    type=["pdf", "png", "jpg", "jpeg"],
+    accept_multiple_files=True,
+    label_visibility="collapsed"
+)
+
+# ─── MAIN ─────────────────────────────────────────────────────────────────────
 if fichiers and api_key:
-    col_btn = st.columns([1, 2, 1])
-    with col_btn[1]:
-        lancer = st.button("🐾 Lancer l'extraction !", type="primary", use_container_width=True)
+    
+    client_genai = genai.configure(api_key=api_key)
 
-    if lancer or "resultats" in st.session_state:
-        
-        if lancer:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("gemini-2.5-flash")
-            
-            st.markdown("""
+    if st.button("🐾 Analyser les factures", use_container_width=False):
+        resultats = []
+        progress = st.progress(0)
+        status   = st.empty()
+
+        for i, fichier in enumerate(fichiers):
+            status.markdown(f"""
             <div class="cat-container">
-                <div style="font-size:2.5rem;">😺</div>
+                <pre class="cat-ascii" style="font-size:0.8rem !important;">{CAT_ASCII_PETIT}</pre>
                 <div class="chat-bubble">
                     <span style="color:#a0522d; font-weight:700;">
-                        Je suis sur le coup ! Analyse en cours... 🐾
+                        Analyse de {fichier.name}...
                     </span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
-            progress = st.progress(0)
-            resultats = []
-            
-            for i, fichier in enumerate(fichiers):
-                fichier.seek(0)
-                status_cats = ["😺", "🐱", "😸", "🙀", "😻"]
-                cat = status_cats[i % len(status_cats)]
-                
-                with st.spinner(f"{cat} Analyse de {fichier.name}..."):
-                    try:
-                        data = extraire_facture(fichier, model, mois_choisi, annee_choisie)
-                        data["fichier"] = fichier.name
-                        data["statut"] = "Validé 😸"
-                        resultats.append(data)
-                    except Exception as e:
-                        resultats.append({
-                            "fichier": fichier.name,
-                            "date": "", "fournisseur": "", "numero_facture": "",
-                            "montant_ht": "", "tva": "", "montant_ttc": "",
-                            "description": str(e), "categorie": "",
-                            "statut": "Erreur 🙀"
-                        })
-                
-                progress.progress((i + 1) / len(fichiers))
-            
-            st.session_state["resultats"] = resultats
-            st.session_state["mois"] = mois_choisi
-            st.session_state["annee"] = annee_choisie
-
-        # ─── RÉSULTATS ───────────────────────────────────────────────────────
-        if "resultats" in st.session_state:
-            resultats = st.session_state["resultats"]
-            
-            st.markdown("""
-            <div class="cat-container">
-                <div style="font-size:2.5rem;">😻</div>
-                <div class="chat-bubble">
-                    <span style="color:#a0522d; font-weight:700;">
-                        Purrrfect ! Voici ce que j'ai trouvé 🐾
-                    </span><br>
-                    <span style="color:#c8956c;">Vous pouvez modifier directement dans le tableau !</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            col_p1, col_p2, col_p3 = st.columns([2, 2, 4])
-            with col_p1:
-                mois_rapide = st.selectbox("📅 Mois", mois_list,
-                    index=mois_list.index(st.session_state.get("mois", mois_choisi)))
-            with col_p2:
-                annee_rapide = st.selectbox("📅 Année", list(range(2023, 2031)),
-                    index=list(range(2023, 2031)).index(st.session_state.get("annee", annee_choisie)))
-            
-            df = pd.DataFrame(resultats)
-            df = df.rename(columns={
-                "fichier": "Fichier",
-                "date": "Date",
-                "fournisseur": "Fournisseur",
-                "numero_facture": "N° Facture",
-                "montant_ht": "Montant HT (€)",
-                "tva": "TVA (€)",
-                "montant_ttc": "Montant TTC (€)",
-                "description": "Description",
-                "categorie": "Catégorie",
-                "statut": "Statut"
-            })
-            
-            df["Mois"] = mois_rapide
-            df["Année"] = annee_rapide
-            
-            colonnes_ordre = ["Fichier", "Date", "Mois", "Année", "Fournisseur",
-                              "N° Facture", "Montant HT (€)", "TVA (€)",
-                              "Montant TTC (€)", "Catégorie", "Description", "Statut"]
-            df = df[colonnes_ordre]
-            
-            df_edit = st.data_editor(
-                df,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Statut": st.column_config.SelectboxColumn(
-                        "Statut",
-                        options=["Validé 😸", "À vérifier 🐱", "Erreur 🙀", "En attente 😺"]
-                    ),
-                    "Catégorie": st.column_config.SelectboxColumn(
-                        "Catégorie",
-                        options=["Transport","Repas","Hébergement",
-                                 "Fournitures","Services","Autres"]
-                    )
+            try:
+                r = analyser_facture(fichier, genai)
+            except Exception as e:
+                r = {
+                    "Fichier": fichier.name, "Date": "", "Mois": "", "Année": "",
+                    "Fournisseur": "", "N° Facture": "", "Montant HT (€)": 0,
+                    "TVA (€)": 0, "Montant TTC (€)": 0, "Catégorie": "Autre",
+                    "Description": str(e), "statut": "❌ Erreur 🙀",
                 }
-            )
-            
-            # ─── STATS ───────────────────────────────────────────────────────
-            st.markdown("### 📊 Tableau de bord")
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
+            resultats.append(r)
+            progress.progress((i + 1) / len(fichiers))
+
+        status.empty()
+        progress.empty()
+        st.session_state["resultats"] = resultats
+        st.session_state["fichiers"]  = fichiers
+
+    # ─── RÉSULTATS ────────────────────────────────────────────────────────────
+    if "resultats" in st.session_state:
+        resultats = st.session_state["resultats"]
+        fichiers  = st.session_state["fichiers"]
+
+        df = pd.DataFrame([{k: v for k, v in r.items() if k != "statut"} for r in resultats])
+
+        # Filtres
+        df_filtre = df.copy()
+        if mois_rapide != "Tous":
+            df_filtre = df_filtre[df_filtre["Mois"].str.lower() == mois_rapide.lower()]
+        if annee_rapide != "Toutes":
+            df_filtre = df_filtre[df_filtre["Année"].astype(str) == annee_rapide]
+
+        # KPIs globaux
+        total_ttc = df_filtre["Montant TTC (€)"].sum()
+        total_ht  = df_filtre["Montant HT (€)"].sum()
+        total_tva = df_filtre["TVA (€)"].sum()
+        nb        = len(df_filtre)
+
+        st.markdown("### 📊 Résumé")
+        k1, k2, k3, k4 = st.columns(4)
+        for col, label, val, emoji in [
+            (k1, "Factures",     nb,                      "🐾"),
+            (k2, "Total HT",     f"{total_ht:.2f} €",     "💶"),
+            (k3, "Total TVA",    f"{total_tva:.2f} €",    "📊"),
+            (k4, "Total TTC",    f"{total_ttc:.2f} €",    "💰"),
+        ]:
+            with col:
                 st.markdown(f"""
                 <div class="card" style="text-align:center;">
-                    <div style="font-size:2.5rem;">🐱</div>
-                    <div style="font-size:2rem; font-weight:800; color:#a0522d;">{len(df_edit)}</div>
-                    <div style="color:#c8956c;">Factures traitées</div>
+                    <div style="font-size:2rem;">{emoji}</div>
+                    <div style="color:#c8956c; font-size:0.85rem; font-weight:600;">{label}</div>
+                    <div style="color:#a0522d; font-size:1.4rem; font-weight:800;">{val}</div>
                 </div>
                 """, unsafe_allow_html=True)
-            
-            with col2:
-                nb_valides = len(df_edit[df_edit["Statut"] == "Validé 😸"])
-                st.markdown(f"""
-                <div class="card" style="text-align:center;">
-                    <div style="font-size:2.5rem;">😸</div>
-                    <div style="font-size:2rem; font-weight:800; color:#2d6b4a;">{nb_valides}</div>
-                    <div style="color:#c8956c;">Validées</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            with col3:
-                nb_erreurs = len(df_edit[df_edit["Statut"] == "Erreur 🙀"])
-                st.markdown(f"""
-                <div class="card" style="text-align:center;">
-                    <div style="font-size:2.5rem;">🙀</div>
-                    <div style="font-size:2rem; font-weight:800; color:#c0392b;">{nb_erreurs}</div>
-                    <div style="color:#c8956c;">Erreurs</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            with col4:
-                try:
-                    total = df_edit["Montant TTC (€)"].replace('', '0').astype(float).sum()
-                    total_str = f"{total:,.2f} €"
-                except:
-                    total_str = "N/A"
-                st.markdown(f"""
-                <div class="card" style="text-align:center;">
-                    <div style="font-size:2.5rem;">💰</div>
-                    <div style="font-size:1.5rem; font-weight:800; color:#a0522d;">{total_str}</div>
-                    <div style="color:#c8956c;">Total TTC</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            # ─── PRÉVISUALISATION ────────────────────────────────────────────
-            st.markdown("### 🔍 Prévisualisation des fichiers")
-            
-            nb_cols = min(len(fichiers), 3)
-            cols_prev = st.columns(nb_cols)
-            
-            for idx, fichier in enumerate(fichiers):
-                fichier.seek(0)
-                with cols_prev[idx % nb_cols]:
-                    st.markdown(f"""
-                    <div class="card" style="text-align:center;">
-                        <p style="color:#a0522d; font-weight:700;
-                           font-size:0.85rem; margin-bottom:0.5rem;">
-                            🐾 {fichier.name}
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    if fichier.type == "application/pdf":
-                        images = pdf_to_images(fichier.read())
-                        st.image(images[0], use_container_width=True)
-                        if len(images) > 1:
-                            st.caption(f"📄 {len(images)} page(s)")
-                    else:
-                        st.image(Image.open(fichier), use_container_width=True)
-                    
-                    if idx < len(resultats):
-                        statut = resultats[idx].get("statut", "")
-                        st.markdown(f"""
-                        <p style="text-align:center; margin-top:0.5rem;">{statut}</p>
-                        """, unsafe_allow_html=True)
-            
-            # ─── EXPORT ──────────────────────────────────────────────────────
-            st.markdown("---")
-            buffer = io.BytesIO()
-            df_edit.to_excel(buffer, index=False, engine="openpyxl")
-            buffer.seek(0)
-            
-            col_dl = st.columns([1, 2, 1])
-            with col_dl[1]:
-                st.download_button(
-                    label="📥 Télécharger Excel 🐾",
-                    data=buffer,
-                    file_name=f"factures_{mois_rapide}_{annee_rapide}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
-            
-            # ─── FOOTER ──────────────────────────────────────────────────────
-            st.markdown("---")
+
+        # ─── TABLEAU ÉDITABLE ─────────────────────────────────────────────────
+        st.markdown("### ✏️ Tableau éditable")
+        df_edit = st.data_editor(
+            df_filtre.drop(columns=["Fichier"]),
+            use_container_width=True,
+            num_rows="dynamic",
+            column_config={
+                "Catégorie": st.column_config.SelectboxColumn(
+                    options=["Fournitures","Services","Logiciels","Transport",
+                             "Restauration","Marketing","Immobilier","Utilities","Autre"]
+                ),
+                "Montant HT (€)":  st.column_config.NumberColumn(format="%.2f €"),
+                "TVA (€)":         st.column_config.NumberColumn(format="%.2f €"),
+                "Montant TTC (€)": st.column_config.NumberColumn(format="%.2f €"),
+            }
+        )
+
+        # ─── FACTURES CORRÉLÉES ───────────────────────────────────────────────
+        st.markdown("### 🔍 Factures & Données extraites")
+
+        def kpi(label, val, emoji):
+            return f"""
+            <div class="kpi-box">
+                <div style="font-size:1.2rem;">{emoji}</div>
+                <div style="font-size:0.7rem; color:#c8956c; font-weight:600;">{label}</div>
+                <div style="font-size:0.9rem; color:#a0522d; font-weight:800;">{val or "—"}</div>
+            </div>"""
+
+        for idx, (fichier, resultat) in enumerate(zip(fichiers, resultats)):
+            fichier.seek(0)
+            statut  = resultat.get("statut", "")
+            couleur = "#e8f5e9" if "Validé" in statut else "#ffeaea" if "Erreur" in statut else "#fff8f3"
+
             st.markdown(f"""
-            <div style="text-align:center; padding: 1rem 0;">
-                <pre class="cat-ascii">{CAT_ASCII_GRAND}</pre>
-                <p style="color:#a0522d; font-weight:700; margin-top:0.8rem;">
-                    Purrrfait travail ! 🐾
-                </p>
-                <p style="color:#c8956c; font-size:0.85rem;">
-                    FactureCat — Votre comptable félin 🐱
-                </p>
+            <div style="background:{couleur}; border-radius:16px; padding:0.8rem 1rem;
+                        border:2px solid #f5e6d8; margin-bottom:0.3rem;">
+                <span style="font-size:1.2rem;">🐾</span>
+                <span style="color:#a0522d; font-weight:700; margin-left:0.5rem;">{fichier.name}</span>
+                <span style="float:right;">{statut}</span>
             </div>
             """, unsafe_allow_html=True)
+
+            col_img, col_data = st.columns([1, 3])
+
+            with col_img:
+                fichier.seek(0)
+                if fichier.type == "application/pdf":
+                    images = pdf_to_images(fichier.read())
+                    st.image(images[0], use_container_width=True)
+                    if len(images) > 1:
+                        st.caption(f"📄 {len(images)} page(s)")
+                else:
+                    st.image(Image.open(fichier), use_container_width=True)
+
+            with col_data:
+                r1c1, r1c2, r1c3, r1c4 = st.columns(4)
+                r2c1, r2c2, r2c3, r2c4 = st.columns(4)
+                r3c1, r3c2             = st.columns(2)
+
+                with r1c1: st.markdown(kpi("Date",       resultats[idx]["Date"],            "📅"), unsafe_allow_html=True)
+                with r1c2: st.markdown(kpi("Mois",       resultats[idx]["Mois"],            "🗓️"), unsafe_allow_html=True)
+                with r1c3: st.markdown(kpi("Année",      resultats[idx]["Année"],           "📆"), unsafe_allow_html=True)
+                with r1c4: st.markdown(kpi("N° Facture", resultats[idx]["N° Facture"],      "🔢"), unsafe_allow_html=True)
+
+                st.markdown("<div style='margin:0.3rem 0;'></div>", unsafe_allow_html=True)
+
+                with r2c1: st.markdown(kpi("Montant HT",  f"{resultats[idx]['Montant HT (€)']:.2f} €",  "💶"), unsafe_allow_html=True)
+                with r2c2: st.markdown(kpi("TVA",         f"{resultats[idx]['TVA (€)']:.2f} €",         "📊"), unsafe_allow_html=True)
+                with r2c3: st.markdown(kpi("Montant TTC", f"{resultats[idx]['Montant TTC (€)']:.2f} €", "💰"), unsafe_allow_html=True)
+                with r2c4: st.markdown(kpi("Catégorie",   resultats[idx]["Catégorie"],                  "🏷️"), unsafe_allow_html=True)
+
+                st.markdown("<div style='margin:0.3rem 0;'></div>", unsafe_allow_html=True)
+
+                with r3c1: st.markdown(kpi("Fournisseur", resultats[idx]["Fournisseur"],  "🏢"), unsafe_allow_html=True)
+                with r3c2: st.markdown(kpi("Description", resultats[idx]["Description"],  "📝"), unsafe_allow_html=True)
+
+            st.markdown("<hr style='border:1px solid #f0d5c0; margin:0.8rem 0;'>", unsafe_allow_html=True)
+
+        # ─── EXPORT ───────────────────────────────────────────────────────────
+        st.markdown("---")
+        buffer = io.BytesIO()
+        df_edit.to_excel(buffer, index=False, engine="openpyxl")
+        buffer.seek(0)
+
+        col_dl = st.columns([1, 2, 1])
+        with col_dl[1]:
+            st.download_button(
+                label="📥 Télécharger Excel 🐾",
+                data=buffer,
+                file_name=f"factures_{mois_rapide}_{annee_rapide}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+
+        # ─── FOOTER ───────────────────────────────────────────────────────────
+        st.markdown("---")
+        st.markdown(f"""
+        <div style="text-align:center; padding: 1rem 0;">
+            <pre class="cat-ascii">{CAT_ASCII_GRAND}</pre>
+            <p style="color:#a0522d; font-weight:700; margin-top:0.8rem;">Purrrfait travail ! 🐾</p>
+            <p style="color:#c8956c; font-size:0.85rem;">FactureCat — Votre comptable félin 🐱</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 elif fichiers and not api_key:
     st.markdown("""
