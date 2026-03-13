@@ -483,4 +483,19 @@ elif fichiers and not api_key:
 
 elif not fichiers:
     st.markdown("""
-    <div style="text-align:center; padding:3
+    <div style="text-align:center; padding:3rem; color:#c8956c;">
+        <pre style="color:#d4a882; font-size:1.2rem; line-height:1.4; display:inline-block;">
+  /\_____/\
+ /  o   o  \
+( ==  ^  == )
+ )         (
+(           )
+( (  )   (  ) )
+(__(__)___(__)__)
+        </pre>
+        <p style="font-size:1.2rem; font-weight:700; color:#a0522d;">
+            Uploadez vos factures ci-dessus pour commencer !
+        </p>
+        <p style="font-size:0.95rem;">Je suis prêt à analyser vos documents 🐾</p>
+    </div>
+    """, unsafe_allow_html=True)
