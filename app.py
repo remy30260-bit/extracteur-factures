@@ -275,7 +275,7 @@ if fichiers and api_key:
 
     # ✅ CORRECTION 2 : configure() ne retourne rien, créer le model séparément
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.5-flash-preview")
+    model = genai.GenerativeModel("model = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
 
     if st.button("🐾 Analyser les factures", use_container_width=False):
         resultats = []
