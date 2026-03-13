@@ -112,24 +112,23 @@ st.markdown("""
 
 # ─── ASCII ART ───────────────────────────────────────────────────────────
 CAT_ASCII_GRAND = (
-    "  /\\_____/\\\n"
-    " /  o   o  \\\n"
+    "  /\\\\_____/\\\\\n"
+    " /  o   o  \\\\\n"
     "(  ==  ^  == )\n"
     " )          (\n"
     "(            )\n"
     "( (        ) )\n"
-    "(__(__))___(__)__)"
+    "(__(__))___(__))__)"
 )
 
 CAT_ASCII_PETIT = (
-    "  /\\_/\\\n"
+    "  /\\\\_/\\\\\n"
     " ( ^.^ )\n"
     "  > 🐾 <"
 )
 
 
 def ascii_to_html(ascii_art: str) -> str:
-    """Convert multiline ASCII art to HTML-safe block with <br> line breaks."""
     return ascii_art.replace("\n", "<br>")
 
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
@@ -264,13 +263,26 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
 
 # ─── BOUTON EXTRACTION ───────────────────────────────────────────────────────
 if fichiers and api_key:
+
+    # ← NOUVEAU : détection des changements de fichiers
+    noms_actuels = sorted([f.name for f in fichiers])
+    noms_precedents = sorted(st.session_state.get("fichiers_extraits", []))
+    fichiers_ont_change = noms_actuels != noms_precedents
+
     col_btn = st.columns([1, 2, 1])
     with col_btn[1]:
         lancer = st.button("🐾 Lancer l'extraction !", type="primary", use_container_width=True)
 
-    if lancer or "resultats" in st.session_state:
-        
-        if lancer and "resultats" not in st.session_state:
+    # ← NOUVEAU : avertissement si nouvelles factures détectées
+    if fichiers_ont_change and "resultats" in st.session_state:
+        st.warning("⚠️ De nouvelles factures ont été ajoutées. Clique sur **Lancer l'extraction** pour les analyser !")
+
+    # ← NOUVEAU : condition corrigée
+    doit_extraire = lancer and ("resultats" not in st.session_state or fichiers_ont_change)
+
+    if doit_extraire or ("resultats" in st.session_state and not fichiers_ont_change):
+
+        if doit_extraire:
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel("gemini-2.5-flash")
             
@@ -316,6 +328,7 @@ if fichiers and api_key:
             st.session_state["resultats"] = resultats
             st.session_state["mois"] = mois_choisi
             st.session_state["annee"] = annee_choisie
+            st.session_state["fichiers_extraits"] = noms_actuels  # ← NOUVEAU
             st.session_state["scroll_to_dashboard"] = True
             st.rerun()
 
@@ -335,7 +348,6 @@ if fichiers and api_key:
             </div>
             """, unsafe_allow_html=True)
 
-            # Anchor for automatic scroll
             st.markdown('<div id="dashboard"></div>', unsafe_allow_html=True)
 
             col_p1, col_p2, col_p3 = st.columns([2, 2, 4])
@@ -454,8 +466,8 @@ if fichiers and api_key:
                 </div>
                 """, unsafe_allow_html=True)
 
-            # ─── FACTURE EN GRAND (APERSPECTIVE) ───────────────────────────────
-            st.markdown("### 📄 Visualisation des Facture")
+            # ─── VISUALISATION DES FACTURES ───────────────────────────────────
+            st.markdown("### 📄 Visualisation des Factures")
             for idx, fichier in enumerate(fichiers):
                 with st.expander(f"Voir {fichier.name}", expanded=(idx == 0)):
                     fichier.seek(0)
