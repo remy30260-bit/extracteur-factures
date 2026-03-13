@@ -120,50 +120,54 @@ if fichiers and api_key:
             status_text.markdown(f"⏳ Analyse de **{fichier.name}**...")
             
             try:
-                if fichier.type == "application/pdf":
-                    pdf = fitz.open(stream=fichier.read(), filetype="pdf")
-                    page = pdf[0]
-                    pix = page.get_pixmap(dpi=200)
-                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                else:
-                    img = Image.open(fichier)
+    if fichier.type == "application/pdf":
+        pdf = fitz.open(stream=fichier.read(), filetype="pdf")
+        page = pdf[0]
+        pix = page.get_pixmap(dpi=200)
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+    else:
+        img = Image.open(fichier)
 
-                prompt = """Tu es un expert comptable. Analyse cette facture.
-Retourne UNIQUEMENT un objet JSON valide, sans markdown, sans explication, sans ```.
-Format strict :
+    prompt = """Analyse cette facture et retourne UNIQUEMENT ce JSON, rien d'autre, pas de texte avant ou après :
 {
   "fournisseur_client": "nom du fournisseur ou client",
   "numero_facture": "numéro de facture",
   "type": "Facture",
-  "montant_facture": "montant TTC en chiffres uniquement ex: 1250.00",
+  "montant_facture": "montant TTC en chiffres uniquement exemple 1250.00",
   "date_facture": "date au format JJ/MM/AAAA",
   "statut": "À valider"
-}"""
+}
+Si une information est introuvable, mets "Non trouvé"."""
 
-                response = model.generate_content([prompt, img])
-                texte = response.text.strip()
+    response = model.generate_content([prompt, img])
+    texte = response.text.strip()
 
-                # Nettoyage robuste
-                texte = texte.replace("```json", "").replace("```", "").strip()
-                debut = texte.find("{")
-                fin = texte.rfind("}") + 1
-                if debut != -1 and fin > debut:
-                    texte = texte[debut:fin]
+    # Affichage debug (à supprimer après test)
+    st.code(texte, language="json")
 
-                data = json.loads(texte)
-                data["fichier"] = fichier.name
-                resultats.append(data)
+    # Nettoyage robuste
+    texte = texte.replace("```json", "").replace("```", "").strip()
+    debut = texte.find("{")
+    fin = texte.rfind("}") + 1
+    if debut != -1 and fin > debut:
+        texte = texte[debut:fin]
 
-            except Exception as e:
-                resultats.append({
-                    "fournisseur_client": "Erreur",
-                    "numero_facture": "",
-                    "type": "",
-                    "montant_facture": "",
-                    "date_facture": "",
-                    "statut": f"❌ {str(e)}",
-                    "fichier": fichier.name
-                })
+    data = json.loads(texte)
+    data["fichier"] = fichier.name
+    resultats.append(data)
+
+except Exception as e:
+    st.error(f"Erreur sur {fichier.name} : {e}")
+    resultats.append({
+        "fournisseur_client": "Erreur",
+        "numero_facture": "",
+        "type": "",
+        "montant_facture": "",
+        "date_facture": "",
+        "statut": f"❌ {str(e)}",
+        "fichier": fichier.name
+    })
+
 
             progress.progress((i + 1) / len(fichiers))
 
