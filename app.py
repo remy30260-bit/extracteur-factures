@@ -1,10 +1,12 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import google.generativeai as genai
 import pandas as pd
 import json
 import fitz
 from PIL import Image
 import io
+from datetime import datetime
 
 st.set_page_config(page_title="FactureCat 🐱", page_icon="🐱", layout="wide")
 
@@ -91,35 +93,44 @@ st.markdown("""
     pre.cat-ascii {
         font-family: 'Courier New', Courier, monospace !important;
         font-size: 1.1rem !important;
-        line-height: 1.5 !important;
+        line-height: 1.2 !important;
         color: #c8956c !important;
         white-space: pre !important;
-        word-break: keep-all !important;
+        word-break: normal !important;
         overflow-wrap: normal !important;
         background: none !important;
         border: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        display: inline-block !important;
-        text-align: left !important;
-        width: auto !important;
-        max-width: none !important;
+        padding: 0.5rem 1rem !important;
+        margin: 0.5rem auto !important;
+        display: block !important;
+        text-align: center !important;
+        width: fit-content !important;
+        max-width: 100% !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ─── ASCII ART (espaces non-sécables) ────────────────────────────────────────
-CAT_ASCII_GRAND = """&#160;&#160;/\\_____/\\
-&#160;/&#160;&#160;o&#160;&#160;&#160;o&#160;&#160;\\
-(&#160;==&#160;&#160;^&#160;&#160;==&#160;)
-&#160;)&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;(
-(&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;)
-(&#160;(&#160;&#160;)&#160;&#160;&#160;(&#160;&#160;)&#160;)
-(__(__))___(__)__)"""
+# ─── ASCII ART ───────────────────────────────────────────────────────────
+CAT_ASCII_GRAND = (
+    "  /\\_____/\\\n"
+    " /  o   o  \\\n"
+    "(  ==  ^  == )\n"
+    " )          (\n"
+    "(            )\n"
+    "( (        ) )\n"
+    "(__(__))___(__)__)"
+)
 
-CAT_ASCII_PETIT = """&#160;/\\_/\\
-(&#160;^.^&#160;)
-&#160;&gt;&#160;🐾&#160;&lt;"""
+CAT_ASCII_PETIT = (
+    "  /\\_/\\\n"
+    " ( ^.^ )\n"
+    "  > 🐾 <"
+)
+
+
+def ascii_to_html(ascii_art: str) -> str:
+    """Convert multiline ASCII art to HTML-safe block with <br> line breaks."""
+    return ascii_art.replace("\n", "<br>")
 
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -136,13 +147,11 @@ with st.sidebar:
     api_key = st.text_input("🔑 Clé API Gemini", type="password", placeholder="AIza...")
     
     st.markdown("---")
-    st.markdown("### 📅 Période")
     mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
                  "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-    mois_choisi = st.selectbox("Mois", mois_list, index=0)
-    annee_choisie = st.selectbox("Année", list(range(2023, 2031)), index=2)
-    
-    st.markdown("---")
+    now = datetime.now()
+    mois_choisi = mois_list[now.month - 1]
+    annee_choisie = now.year
     st.markdown("""
     <div class="card">
         <p style="color:#a0522d; font-weight:700; margin:0 0 0.5rem 0;">📖 Guide rapide</p>
@@ -158,7 +167,7 @@ with st.sidebar:
     
     st.markdown(f"""
     <div style="text-align:center; margin-top:1rem;">
-        <pre class="cat-ascii" style="font-size:0.9rem !important;">{CAT_ASCII_PETIT}</pre>
+        <div class="cat-ascii" style="font-size:0.9rem !important;">{ascii_to_html(CAT_ASCII_PETIT)}</div>
         <p style="color:#d4a882; font-size:0.75rem; margin-top:0.3rem;">
             Miaouu~ je veille sur vos factures
         </p>
@@ -166,17 +175,15 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 # ─── HEADER ──────────────────────────────────────────────────────────────────
-col_logo, col_title = st.columns([1, 5])
-with col_logo:
-    st.markdown('<div style="font-size:4rem; text-align:center; margin-top:0.5rem;">🐱</div>',
-                unsafe_allow_html=True)
-with col_title:
-    st.markdown("""
-    <h1 style="margin-bottom:0;">FactureCat</h1>
-    <p style="color:#c8956c; margin-top:0; font-size:1.1rem;">
+st.markdown("""
+<div style="text-align:center; padding: 1.5rem 0;">
+    <div style="font-size:4rem;">🐱</div>
+    <h1 style="margin:0;">FactureCat</h1>
+    <p style="color:#c8956c; margin:0.5rem 0 0 0; font-size:1.1rem;">
         Extraction intelligente de factures 🐾
     </p>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -263,7 +270,7 @@ if fichiers and api_key:
 
     if lancer or "resultats" in st.session_state:
         
-        if lancer:
+        if lancer and "resultats" not in st.session_state:
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel("gemini-2.5-flash")
             
@@ -301,16 +308,21 @@ if fichiers and api_key:
                             "statut": "Erreur 🙀"
                         })
                 
-                progress.progress((i + 1) / len(fichiers))
-            
+                progress.progress(int((i + 1) / len(fichiers) * 100))
+
+            progress.progress(100)
+            progress.empty()
+
             st.session_state["resultats"] = resultats
             st.session_state["mois"] = mois_choisi
             st.session_state["annee"] = annee_choisie
+            st.session_state["scroll_to_dashboard"] = True
+            st.rerun()
 
         # ─── RÉSULTATS ───────────────────────────────────────────────────────
         if "resultats" in st.session_state:
             resultats = st.session_state["resultats"]
-            
+
             st.markdown("""
             <div class="cat-container">
                 <div style="font-size:2.5rem;">😻</div>
@@ -322,7 +334,10 @@ if fichiers and api_key:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            
+
+            # Anchor for automatic scroll
+            st.markdown('<div id="dashboard"></div>', unsafe_allow_html=True)
+
             col_p1, col_p2, col_p3 = st.columns([2, 2, 4])
             with col_p1:
                 mois_rapide = st.selectbox("📅 Mois", mois_list,
@@ -330,7 +345,7 @@ if fichiers and api_key:
             with col_p2:
                 annee_rapide = st.selectbox("📅 Année", list(range(2023, 2031)),
                     index=list(range(2023, 2031)).index(st.session_state.get("annee", annee_choisie)))
-            
+
             df = pd.DataFrame(resultats)
             df = df.rename(columns={
                 "fichier": "Fichier",
@@ -344,15 +359,15 @@ if fichiers and api_key:
                 "categorie": "Catégorie",
                 "statut": "Statut"
             })
-            
+
             df["Mois"] = mois_rapide
             df["Année"] = annee_rapide
-            
+
             colonnes_ordre = ["Fichier", "Date", "Mois", "Année", "Fournisseur",
                               "N° Facture", "Montant HT (€)", "TVA (€)",
                               "Montant TTC (€)", "Catégorie", "Description", "Statut"]
             df = df[colonnes_ordre]
-            
+
             df_edit = st.data_editor(
                 df,
                 use_container_width=True,
@@ -369,11 +384,33 @@ if fichiers and api_key:
                     )
                 }
             )
-            
+
+            # ─── SCROLL AUTOMATIQUE ───────────────────────────────────────────
+            if st.session_state.get("scroll_to_dashboard"):
+                components.html(
+                    "<script>"
+                    "setTimeout(() => {"
+                    "  try {"
+                    "    window.location.hash = 'dashboard';"
+                    "  } catch (e) {}"
+                    "  try {"
+                    "    const el = document.getElementById('dashboard');"
+                    "    if (el) el.scrollIntoView({behavior:'smooth'});"
+                    "  } catch (e) {}"
+                    "  try {"
+                    "    const pel = window.parent.document.getElementById('dashboard');"
+                    "    if (pel) pel.scrollIntoView({behavior:'smooth'});"
+                    "  } catch (e) {}"
+                    "}, 150);"
+                    "</script>",
+                    height=0,
+                )
+                st.session_state["scroll_to_dashboard"] = False
+
             # ─── STATS ───────────────────────────────────────────────────────
             st.markdown("### 📊 Tableau de bord")
             col1, col2, col3, col4 = st.columns(4)
-            
+
             with col1:
                 st.markdown(f"""
                 <div class="card" style="text-align:center;">
@@ -382,7 +419,7 @@ if fichiers and api_key:
                     <div style="color:#c8956c;">Factures traitées</div>
                 </div>
                 """, unsafe_allow_html=True)
-            
+
             with col2:
                 nb_valides = len(df_edit[df_edit["Statut"] == "Validé 😸"])
                 st.markdown(f"""
@@ -392,7 +429,7 @@ if fichiers and api_key:
                     <div style="color:#c8956c;">Validées</div>
                 </div>
                 """, unsafe_allow_html=True)
-            
+
             with col3:
                 nb_erreurs = len(df_edit[df_edit["Statut"] == "Erreur 🙀"])
                 st.markdown(f"""
@@ -402,7 +439,7 @@ if fichiers and api_key:
                     <div style="color:#c8956c;">Erreurs</div>
                 </div>
                 """, unsafe_allow_html=True)
-            
+
             with col4:
                 try:
                     total = df_edit["Montant TTC (€)"].replace('', '0').astype(float).sum()
@@ -416,25 +453,12 @@ if fichiers and api_key:
                     <div style="color:#c8956c;">Total TTC</div>
                 </div>
                 """, unsafe_allow_html=True)
-            
-            # ─── PRÉVISUALISATION ────────────────────────────────────────────
-            st.markdown("### 🔍 Prévisualisation des fichiers")
-            
-            nb_cols = min(len(fichiers), 3)
-            cols_prev = st.columns(nb_cols)
-            
+
+            # ─── FACTURE EN GRAND (APERSPECTIVE) ───────────────────────────────
+            st.markdown("### 📄 Visualisation des Facture")
             for idx, fichier in enumerate(fichiers):
-                fichier.seek(0)
-                with cols_prev[idx % nb_cols]:
-                    st.markdown(f"""
-                    <div class="card" style="text-align:center;">
-                        <p style="color:#a0522d; font-weight:700;
-                           font-size:0.85rem; margin-bottom:0.5rem;">
-                            🐾 {fichier.name}
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
+                with st.expander(f"Voir {fichier.name}", expanded=(idx == 0)):
+                    fichier.seek(0)
                     if fichier.type == "application/pdf":
                         images = pdf_to_images(fichier.read())
                         st.image(images[0], use_container_width=True)
@@ -442,12 +466,6 @@ if fichiers and api_key:
                             st.caption(f"📄 {len(images)} page(s)")
                     else:
                         st.image(Image.open(fichier), use_container_width=True)
-                    
-                    if idx < len(resultats):
-                        statut = resultats[idx].get("statut", "")
-                        st.markdown(f"""
-                        <p style="text-align:center; margin-top:0.5rem;">{statut}</p>
-                        """, unsafe_allow_html=True)
             
             # ─── EXPORT ──────────────────────────────────────────────────────
             st.markdown("---")
@@ -469,7 +487,7 @@ if fichiers and api_key:
             st.markdown("---")
             st.markdown(f"""
             <div style="text-align:center; padding: 1rem 0;">
-                <pre class="cat-ascii">{CAT_ASCII_GRAND}</pre>
+                <div class="cat-ascii">{ascii_to_html(CAT_ASCII_GRAND)}</div>
                 <p style="color:#a0522d; font-weight:700; margin-top:0.8rem;">
                     Purrrfait travail ! 🐾
                 </p>
@@ -495,7 +513,7 @@ elif fichiers and not api_key:
 elif not fichiers:
     st.markdown(f"""
     <div style="text-align:center; padding: 3rem 0;">
-        <pre class="cat-ascii" style="font-size:1.2rem !important;">{CAT_ASCII_GRAND}</pre>
+        <div class="cat-ascii" style="font-size:1.2rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
         <p style="font-size:1.2rem; font-weight:700; color:#a0522d; margin-top:1rem;">
             Uploadez vos factures pour commencer !
         </p>
