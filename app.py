@@ -49,6 +49,11 @@ st.markdown("""
         background: linear-gradient(90deg, #a8b8ff, #c5b8ff, #f0b8ff);
         border-radius: 10px;
     }
+    .periode-card {
+        background: white; border-radius: 16px; padding: 1.2rem 1.5rem;
+        box-shadow: 0 4px 20px rgba(91,106,191,0.1);
+        border: 1px solid #e0e6ff; margin-bottom: 1.5rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -56,13 +61,6 @@ st.markdown("""
 with st.sidebar:
     st.markdown("## ⚙️ Configuration")
     api_key = st.text_input("🔑 Clé API Gemini", type="password", placeholder="AIza...")
-    st.markdown("---")
-    st.markdown("### 📅 Période")
-    mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
-                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-    mois_choisi = st.selectbox("Mois", mois_list, index=pd.Timestamp.now().month - 1)
-    annee_choisie = st.selectbox("Année", list(range(2023, 2031)),
-                                 index=list(range(2023, 2031)).index(pd.Timestamp.now().year))
     st.markdown("---")
     st.markdown("### 📖 Guide")
     st.markdown("""
@@ -77,6 +75,27 @@ with st.sidebar:
 # ─── TITRE ───────────────────────────────────────────────────────────────────
 st.markdown("# 🧾 Extracteur de Factures")
 st.markdown("---")
+
+# ─── SÉLECTEUR DE PÉRIODE DANS LA PAGE ───────────────────────────────────────
+mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
+             "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+
+st.markdown('<div class="periode-card">', unsafe_allow_html=True)
+st.markdown("### 📅 Période de facturation")
+col_m, col_a = st.columns(2)
+with col_m:
+    mois_choisi = st.selectbox(
+        "Mois", mois_list,
+        index=pd.Timestamp.now().month - 1,
+        key="mois_main"
+    )
+with col_a:
+    annee_choisie = st.selectbox(
+        "Année", list(range(2023, 2031)),
+        index=list(range(2023, 2031)).index(pd.Timestamp.now().year),
+        key="annee_main"
+    )
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ─── UPLOAD ──────────────────────────────────────────────────────────────────
 fichiers = st.file_uploader(
@@ -93,7 +112,7 @@ if fichiers and api_key:
 
     if analyser:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
         resultats = []
         progress = st.progress(0)
@@ -110,9 +129,18 @@ if fichiers and api_key:
                 else:
                     img = Image.open(fichier)
 
-                prompt = """Analyse cette facture et retourne UNIQUEMENT ce JSON, rien d'autre, pas de texte avant ou après :
+                prompt = """Tu es un expert comptable. Analyse cette facture attentivement.
+
+RÈGLE IMPORTANTE pour "fournisseur_client" :
+- Le FOURNISSEUR est l'entreprise qui ÉMET la facture (celle qui vend / qui demande le paiement)
+- Le CLIENT est l'entreprise qui REÇOIT la facture (celle qui doit payer)
+- Tu dois retourner UNIQUEMENT le nom du FOURNISSEUR (émetteur), PAS le client
+- Le fournisseur est souvent en haut de la facture avec son logo, son SIRET, ses coordonnées bancaires
+- Le client est souvent mentionné dans une section "Facturer à" / "Bill to" / "Client"
+
+Retourne UNIQUEMENT ce JSON brut, sans texte avant ou après, sans markdown :
 {
-  "fournisseur_client": "nom du fournisseur ou client",
+  "fournisseur_client": "nom du fournisseur émetteur uniquement",
   "numero_facture": "numéro de facture",
   "type": "Facture",
   "montant_facture": "montant TTC en chiffres uniquement exemple 1250.00",
@@ -124,10 +152,7 @@ Si une information est introuvable, mets "Non trouvé"."""
                 response = model.generate_content([prompt, img])
                 texte = response.text.strip()
 
-                # Debug
-                st.code(texte, language="json")
-
-                # Nettoyage
+                # Nettoyage robuste
                 texte = texte.replace("```json", "").replace("```", "").strip()
                 debut = texte.find("{")
                 fin = texte.rfind("}") + 1
@@ -164,7 +189,7 @@ Si une information est introuvable, mets "Non trouvé"."""
                 df[col] = ""
         df = df[col_order]
 
-        df.columns = ["Fichier", "Fournisseur/Client", "N° Facture",
+        df.columns = ["Fichier", "Fournisseur", "N° Facture",
                       "Type", "Montant TTC", "Date", "Statut"]
 
         st.markdown("### 📊 Résultats")
@@ -211,6 +236,26 @@ Si une information est introuvable, mets "Non trouvé"."""
             """, unsafe_allow_html=True)
 
         # ─── EXPORT EXCEL ────────────────────────────────────────────────────
+        st.markdown("### 📥 Export")
+        
+        # Sélecteur de période pour l'export
+        st.markdown('<div class="periode-card">', unsafe_allow_html=True)
+        st.markdown("**📅 Période pour l'export Excel**")
+        col_em, col_ea = st.columns(2)
+        with col_em:
+            mois_export = st.selectbox(
+                "Mois export", mois_list,
+                index=mois_list.index(mois_choisi),
+                key="mois_export"
+            )
+        with col_ea:
+            annee_export = st.selectbox(
+                "Année export", list(range(2023, 2031)),
+                index=list(range(2023, 2031)).index(annee_choisie),
+                key="annee_export"
+            )
+        st.markdown('</div>', unsafe_allow_html=True)
+
         buffer = io.BytesIO()
         df_edit.to_excel(buffer, index=False, engine="openpyxl")
         buffer.seek(0)
@@ -218,9 +263,9 @@ Si une information est introuvable, mets "Non trouvé"."""
         col_dl = st.columns([1, 2, 1])
         with col_dl[1]:
             st.download_button(
-                label=f"📥 Télécharger Excel — {mois_choisi} {annee_choisie}",
+                label=f"📥 Télécharger Excel — {mois_export} {annee_export}",
                 data=buffer,
-                file_name=f"factures_{mois_choisi}_{annee_choisie}.xlsx",
+                file_name=f"factures_{mois_export}_{annee_export}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 width='stretch'
             )
