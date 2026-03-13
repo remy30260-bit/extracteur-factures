@@ -34,8 +34,8 @@ def extraire_donnees(image, model):
        "fournisseur_client": "nom du fournisseur qui ÉMET la facture (celui qui vend / qui demande le paiement), PAS le client qui reçoit la facture",
         "numero_facture": "numéro de facture",
         "type": "type de document : Facture / Avoir / Note de frais / Facture pro-forma",
-        "montant_facture": "montant TTC total de la facture",
-        "date_facture": "date de la facture ou date du fait générateur"
+        "montant_facture": "montant TTC total de la facture (nombre uniquement, sans symbole)",
+        "date_facture": "date de la facture ou date du fait générateur au format DD/MM/YYYY"
     }
     
     Si une information est absente, mets null.
@@ -104,7 +104,25 @@ if fichiers and api_key:
             "montant_facture": "Montant facture",
             "date_facture": "Date de facture (ou fait générateur)"
         })
-        
+
+        # Formatage montant monétaire
+        df["Montant facture"] = pd.to_numeric(
+            df["Montant facture"].astype(str)
+            .str.replace("€", "", regex=False)
+            .str.replace(" ", "", regex=False)
+            .str.replace(",", ".", regex=False),
+            errors="coerce"
+        )
+        df["Montant facture"] = df["Montant facture"].apply(
+            lambda x: f"{x:,.2f} €" if pd.notna(x) else ""
+        )
+
+        # Formatage date → MM/YYYY
+        df["Date de facture (ou fait générateur)"] = pd.to_datetime(
+            df["Date de facture (ou fait générateur)"], dayfirst=True, errors="coerce"
+        ).dt.strftime("%m/%Y")
+        df["Date de facture (ou fait générateur)"] = df["Date de facture (ou fait générateur)"].fillna("")
+
         st.dataframe(df, use_container_width=True)
         
         buffer = io.BytesIO()
