@@ -2,7 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import pandas as pd
 import json
-import fitz  # pymupdf
+import fitz
 from PIL import Image
 import io
 
@@ -11,7 +11,6 @@ st.set_page_config(page_title="Extracteur de Factures", page_icon="🧾", layout
 st.title("🧾 Extracteur de Factures")
 st.markdown("Uploadez vos factures (PDF ou image) → extraction automatique des données")
 
-# Clé API
 api_key = st.sidebar.text_input("🔑 Clé API Gemini", type="password")
 
 if api_key:
@@ -52,8 +51,6 @@ def extraire_donnees(image, model):
     
     return json.loads(text)
 
-
-# Upload fichiers
 fichiers = st.file_uploader(
     "📁 Uploadez vos factures",
     type=["pdf", "png", "jpg", "jpeg"],
@@ -79,7 +76,6 @@ if fichiers and api_key:
                 else:
                     images = [Image.open(fichier)]
                 
-                # On prend la première page
                 donnees = extraire_donnees(images[0], model)
                 donnees["fichier"] = fichier.name
                 donnees["statut"] = "✅ OK"
@@ -95,16 +91,12 @@ if fichiers and api_key:
         
         status.text("✅ Traitement terminé !")
         
-        # Affichage résultats
         df = pd.DataFrame(resultats)
         
-        # Réorganiser colonnes
-               cols = ["fichier", "statut", "fournisseur_client", "numero_facture", 
-                "type", "montant_facture", "date_facture"]
+        cols = ["fichier", "statut", "fournisseur_client", "numero_facture", "type", "montant_facture", "date_facture"]
         cols = [c for c in cols if c in df.columns]
         df = df[cols]
-
-        # Renommer pour affichage
+        
         df = df.rename(columns={
             "fichier": "Fichier",
             "statut": "Statut",
@@ -114,11 +106,9 @@ if fichiers and api_key:
             "montant_facture": "Montant facture",
             "date_facture": "Date de facture (ou fait générateur)"
         })
-
         
         st.dataframe(df, use_container_width=True)
         
-        # Export Excel
         buffer = io.BytesIO()
         df.to_excel(buffer, index=False, engine="openpyxl")
         buffer.seek(0)
