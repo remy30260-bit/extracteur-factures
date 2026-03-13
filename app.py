@@ -31,7 +31,7 @@ def extraire_donnees(image, model):
     Réponds UNIQUEMENT avec le JSON, rien d'autre.
     
     {
-        "fournisseur_client": "nom du fournisseur OU du client selon le sens de la facture",
+       "fournisseur_client": "nom du fournisseur qui ÉMET la facture (celui qui vend / qui demande le paiement), PAS le client qui reçoit la facture",
         "numero_facture": "numéro de facture",
         "type": "type de document : Facture / Avoir / Note de frais / Facture pro-forma",
         "montant_facture": "montant TTC total de la facture",
