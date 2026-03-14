@@ -143,8 +143,7 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### ⚙️ Configuration")
-   # Supprimer le champ de saisie et remplacer par :
-api_key = st.secrets["GEMINI_API_KEY"]
+    api_key = st.secrets["GEMINI_API_KEY"]
     
     st.markdown("---")
     mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
@@ -156,11 +155,10 @@ api_key = st.secrets["GEMINI_API_KEY"]
     <div class="card">
         <p style="color:#a0522d; font-weight:700; margin:0 0 0.5rem 0;">📖 Guide rapide</p>
         <p style="color:#c8956c; font-size:0.85rem; margin:0;">
-        1. 🔑 Entrez votre clé API<br>
-        2. 📁 Uploadez vos factures<br>
-        3. 🚀 Lancez l'extraction<br>
-        4. ✏️ Vérifiez les données<br>
-        5. 📥 Exportez en Excel
+        1. 📁 Uploadez vos factures<br>
+        2. 🚀 Lancez l'extraction<br>
+        3. ✏️ Vérifiez les données<br>
+        4. 📥 Exportez en Excel
         </p>
     </div>
     """, unsafe_allow_html=True)
