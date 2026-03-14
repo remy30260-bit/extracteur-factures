@@ -143,7 +143,8 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### ⚙️ Configuration")
-    api_key = st.text_input("🔑 Clé API Gemini", type="password", placeholder="AIza...")
+   # Supprimer le champ de saisie et remplacer par :
+api_key = st.secrets["GEMINI_API_KEY"]
     
     st.markdown("---")
     mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
