@@ -42,6 +42,7 @@ def check_password():
             horizontal=True,
             label_visibility="collapsed"
         )
+
         email = st.text_input("📧 Email")
         password = st.text_input("🔑 Mot de passe", type="password")
 
@@ -86,100 +87,12 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
     * { font-family: 'Nunito', sans-serif; }
     .stApp { background-color: #fdf6f0; }
-
-    /* Cache la sidebar */
-    [data-testid="stSidebar"] { display: none !important; }
-
+    [data-testid="stSidebar"] {
+        background-color: #fff8f3;
+        border-right: 2px solid #f0d5c0;
+    }
     h1 { color: #a0522d; font-weight: 800; }
     h2, h3 { color: #c8956c; }
-
-    /* Topbar fixe */
-    .topbar {
-        position: fixed;
-        top: 0; left: 0; right: 0;
-        z-index: 9999;
-        background: linear-gradient(135deg, #fff8f3, #fdf0e8);
-        border-bottom: 2px solid #f0d5c0;
-        padding: 0.6rem 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 2px 15px rgba(200,149,108,0.2);
-    }
-    .topbar-logo {
-        font-size: 1.4rem;
-        font-weight: 800;
-        color: #a0522d;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    .topbar-nav {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-    }
-    .topbar-btn {
-        background: transparent;
-        border: 2px solid transparent;
-        border-radius: 14px;
-        padding: 0.5rem 1.2rem;
-        font-size: 1rem;
-        font-weight: 700;
-        color: #c8956c;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        text-decoration: none;
-        font-family: 'Nunito', sans-serif;
-    }
-    .topbar-btn:hover {
-        background: #f5e6d8;
-        border-color: #f0a070;
-        color: #a0522d;
-        transform: translateY(-1px);
-    }
-    .topbar-btn.active {
-        background: linear-gradient(135deg, #f0a070, #e8856a);
-        color: white;
-        border-color: transparent;
-        box-shadow: 0 4px 12px rgba(200,149,108,0.4);
-    }
-    .topbar-right {
-        display: flex;
-        align-items: center;
-        gap: 0.8rem;
-    }
-    .topbar-user {
-        font-size: 0.85rem;
-        color: #c8956c;
-        font-weight: 600;
-    }
-    .topbar-logout {
-        background: transparent;
-        border: 2px solid #f0d5c0;
-        border-radius: 12px;
-        padding: 0.4rem 0.8rem;
-        font-size: 0.9rem;
-        color: #c8956c;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-family: 'Nunito', sans-serif;
-        font-weight: 700;
-    }
-    .topbar-logout:hover {
-        background: #ffe0e0;
-        border-color: #e88;
-        color: #c44;
-    }
-
-    /* Décalage du contenu pour la topbar */
-    .main .block-container {
-        padding-top: 5rem !important;
-    }
-
     .stButton > button {
         background: linear-gradient(135deg, #f0a070, #e8856a);
         color: white; border: none; border-radius: 20px;
@@ -237,9 +150,11 @@ st.markdown("""
         font-family: 'Courier New', Courier, monospace !important;
         font-size: 1.1rem !important; line-height: 1.2 !important;
         color: #c8956c !important; white-space: pre !important;
+        word-break: normal !important; overflow-wrap: normal !important;
         background: none !important; border: none !important;
         padding: 0.5rem 1rem !important; margin: 0.5rem auto !important;
         display: block !important; text-align: center !important;
+        width: fit-content !important; max-width: 100% !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -254,59 +169,68 @@ CAT_ASCII_GRAND = (
     "( (        ) )\n"
     "(__(__))___(__))__)"
 )
+CAT_ASCII_PETIT = (
+    "  /\\\\_/\\\\\n"
+    " ( ^.^ )\n"
+    "  > 🐾 <"
+)
 
 def ascii_to_html(ascii_art: str) -> str:
     return ascii_art.replace("\n", "<br>")
 
-# ─── INITIALISATION PAGE ─────────────────────────────────────────────────────
+# ─── INITIALISATION PAGE ──────────────────────────────────────────────────────
 if "page" not in st.session_state:
     st.session_state["page"] = "factures"
 
-# ─── TOPBAR HTML ─────────────────────────────────────────────────────────────
-page_active = st.session_state["page"]
-user_email  = st.session_state.get("user_email", "")
-
-st.markdown(f"""
-<div class="topbar">
-    <div class="topbar-logo">🐱 FactureCat</div>
-    <div class="topbar-nav">
-        <button class="topbar-btn {'active' if page_active == 'factures' else ''}"
-            onclick="window.location.href='?page=factures'" title="Factures">
-            📄 Factures
-        </button>
-        <button class="topbar-btn {'active' if page_active == 'notes_frais' else ''}"
-            onclick="window.location.href='?page=notes_frais'" title="Notes de frais">
-            💰 Notes de frais
-        </button>
-    </div>
-    <div class="topbar-right">
-        <span class="topbar-user">👤 {user_email}</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ─── GESTION NAVIGATION VIA URL PARAMS ───────────────────────────────────────
-params = st.query_params
-if "page" in params:
-    nouvelle_page = params["page"]
-    if nouvelle_page != st.session_state["page"]:
-        st.session_state["page"] = nouvelle_page
-        st.query_params.clear()
-        st.rerun()
-
-# ─── BOUTONS STREAMLIT INVISIBLES pour déconnexion ───────────────────────────
+# ─── SIDEBAR ──────────────────────────────────────────────────────────────────
 with st.sidebar:
-    if st.button("🚪 Déconnexion", key="logout_btn"):
-        st.session_state["authenticated"] = False
+    st.markdown("""
+    <style>
+    [data-testid="stSidebar"] {
+        min-width: 70px !important;
+        max-width: 70px !important;
+    }
+    [data-testid="stSidebar"] .stButton button {
+        width: 45px !important;
+        height: 45px !important;
+        border-radius: 12px !important;
+        font-size: 1.5rem !important;
+        padding: 0 !important;
+        border: 2px solid transparent !important;
+        background: transparent !important;
+        transition: all 0.2s ease !important;
+        margin: 3px auto !important;
+        display: block !important;
+        box-shadow: none !important;
+    }
+    [data-testid="stSidebar"] .stButton button:hover {
+        background: #f5e6d8 !important;
+        border-color: #f0a070 !important;
+        transform: scale(1.1) !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+        display: none;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
+    if st.button("📄", help="Factures — Extraction intelligente"):
         st.session_state["page"] = "factures"
         st.rerun()
 
-# Petit bouton de déconnexion visible dans la topbar via query param
-if "logout" in params:
-    st.session_state["authenticated"] = False
-    st.session_state["page"] = "factures"
-    st.query_params.clear()
-    st.rerun()
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if st.button("💰", help="Notes de frais — Gestion des dépenses"):
+        st.session_state["page"] = "notes_frais"
+        st.rerun()
+
+    st.markdown("<br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
+
+    if st.button("🚪", help="Se déconnecter"):
+        st.session_state["authenticated"] = False
+        st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE : FACTURES
@@ -325,6 +249,7 @@ if st.session_state["page"] == "factures":
 
     st.markdown("---")
 
+    # ─── Clé API + Période ───────────────────────────────────────────────────
     with st.expander("⚙️ Configuration", expanded=False):
         api_key = st.text_input("🔑 Clé API Gemini", type="password",
                                  value=st.session_state.get("api_key", ""))
@@ -533,6 +458,10 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
                     components.html(
                         "<script>setTimeout(() => {"
                         "try { window.location.hash = 'dashboard'; } catch(e){}"
+                        "try { const el = document.getElementById('dashboard');"
+                        "if(el) el.scrollIntoView({behavior:'smooth'}); } catch(e){}"
+                        "try { const pel = window.parent.document.getElementById('dashboard');"
+                        "if(pel) pel.scrollIntoView({behavior:'smooth'}); } catch(e){}"
                         "}, 150);</script>", height=0,
                     )
                     st.session_state["scroll_to_dashboard"] = False
@@ -581,9 +510,10 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
                         use_container_width=True
                     )
 
+                st.markdown("---")
                 st.markdown(f"""
                 <div style="text-align:center; padding: 1rem 0;">
-                    <pre class="cat-ascii">{CAT_ASCII_GRAND}</pre>
+                    <div class="cat-ascii">{ascii_to_html(CAT_ASCII_GRAND)}</div>
                     <p style="color:#a0522d; font-weight:700; margin-top:0.8rem;">Purrrfait travail ! 🐾</p>
                     <p style="color:#c8956c; font-size:0.85rem;">FactureCat — Votre comptable félin 🐱</p>
                 </div>
@@ -603,7 +533,7 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
     elif not fichiers:
         st.markdown(f"""
         <div style="text-align:center; padding: 3rem 0;">
-            <pre class="cat-ascii">{CAT_ASCII_GRAND}</pre>
+            <div class="cat-ascii" style="font-size:1.2rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
             <p style="font-size:1.2rem; font-weight:700; color:#a0522d; margin-top:1rem;">
                 Uploadez vos factures pour commencer !
             </p>
@@ -700,6 +630,16 @@ elif st.session_state["page"] == "notes_frais":
                 st.rerun()
 
     if st.session_state["notes_frais"]:
+        st.markdown("""
+        <div class="cat-container">
+            <div style="font-size:2.5rem;">😻</div>
+            <div class="chat-bubble">
+                <span style="color:#a0522d; font-weight:700;">Vos notes de frais 🐾</span><br>
+                <span style="color:#c8956c;">Modifiez directement dans le tableau !</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
         df_nf = pd.DataFrame(st.session_state["notes_frais"])
         st.dataframe(df_nf, use_container_width=True, hide_index=True)
 
@@ -735,7 +675,7 @@ elif st.session_state["page"] == "notes_frais":
     else:
         st.markdown(f"""
         <div style="text-align:center; padding: 3rem 0;">
-            <pre class="cat-ascii">{CAT_ASCII_GRAND}</pre>
+            <div class="cat-ascii" style="font-size:1.2rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
             <p style="font-size:1.2rem; font-weight:700; color:#a0522d; margin-top:1rem;">
                 Aucune note de frais pour l'instant !
             </p>
