@@ -46,35 +46,35 @@ def check_password():
         email = st.text_input("📧 Email")
         password = st.text_input("🔑 Mot de passe", type="password")
 
-        if st.button(
-            "🐾 Se connecter" if mode == "🔑 Se connecter" else "✨ Créer mon compte",
-            use_container_width=True
-        ):
-            if not email or not password:
-                st.error("❌ Veuillez remplir tous les champs !")
-            else:
+        if mode == "✨ Créer un compte":
+            password2 = st.text_input("🔑 Confirmer mot de passe", type="password")
+            if st.button("🐾 Créer mon compte", use_container_width=True):
+                if password != password2:
+                    st.error("❌ Mots de passe différents !")
+                elif len(password) < 6:
+                    st.error("❌ Minimum 6 caractères !")
+                else:
+                    try:
+                        supabase = get_supabase()
+                        res = supabase.auth.sign_up({"email": email, "password": password})
+                        if res.user:
+                            st.session_state["authenticated"] = True
+                            st.session_state["user_email"] = email
+                            st.success("✅ Bienvenue ! 🐾")
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Erreur : {e}")
+        else:
+            if st.button("🐾 Se connecter", use_container_width=True):
                 try:
                     supabase = get_supabase()
-                    if mode == "🔑 Se connecter":
-                        res = supabase.auth.sign_in_with_password({
-                            "email": email,
-                            "password": password
-                        })
-                    else:
-                        res = supabase.auth.sign_up({
-                            "email": email,
-                            "password": password
-                        })
-
+                    res = supabase.auth.sign_in_with_password({"email": email, "password": password})
                     if res.user:
                         st.session_state["authenticated"] = True
-                        st.session_state["user_email"] = res.user.email
-                        st.success("✅ Connexion réussie ! 🐾")
+                        st.session_state["user_email"] = email
                         st.rerun()
-                    else:
-                        st.error("❌ Échec de la connexion !")
                 except Exception as e:
-                    st.error(f"❌ Erreur : {str(e)}")
+                    st.error(f"❌ Email ou mot de passe incorrect 🙀")
 
     return False
 
@@ -156,6 +156,8 @@ st.markdown("""
         display: block !important; text-align: center !important;
         width: fit-content !important; max-width: 100% !important;
     }
+    /* Style navigation active */
+    div[data-testid="stRadio"] > div { gap: 0.5rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -178,64 +180,80 @@ CAT_ASCII_PETIT = (
 def ascii_to_html(ascii_art: str) -> str:
     return ascii_art.replace("\n", "<br>")
 
-# ─── INITIALISATION PAGE ──────────────────────────────────────────────────────
-if "page" not in st.session_state:
-    st.session_state["page"] = "factures"
-
 # ─── SIDEBAR ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-    <style>
-    [data-testid="stSidebar"] {
-        min-width: 70px !important;
-        max-width: 70px !important;
-    }
-    [data-testid="stSidebar"] .stButton button {
-        width: 45px !important;
-        height: 45px !important;
-        border-radius: 12px !important;
-        font-size: 1.5rem !important;
-        padding: 0 !important;
-        border: 2px solid transparent !important;
-        background: transparent !important;
-        transition: all 0.2s ease !important;
-        margin: 3px auto !important;
-        display: block !important;
-        box-shadow: none !important;
-    }
-    [data-testid="stSidebar"] .stButton button:hover {
-        background: #f5e6d8 !important;
-        border-color: #f0a070 !important;
-        transform: scale(1.1) !important;
-    }
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
-        display: none;
-    }
-    </style>
+    <div style="text-align:center; padding: 1rem 0;">
+        <div style="font-size: 3rem;">🐱</div>
+        <h2 style="color:#a0522d; margin:0;">FactureCat</h2>
+        <p style="color:#c8956c; font-size:0.85rem;">Votre assistant comptable félin</p>
+    </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("---")
+    
+    # ─── NAVIGATION ───────────────────────────────────────────────────────────
+    st.markdown("### 📂 Navigation")
+    page = st.radio(
+        "",
+        ["📄 Factures", "💰 Notes de frais"],
+        label_visibility="collapsed"
+    )
 
-    if st.button("📄", help="Factures — Extraction intelligente"):
-        st.session_state["page"] = "factures"
-        st.rerun()
+    st.markdown("---")
+    st.markdown("### ⚙️ Configuration")
+    api_key = st.secrets["GEMINI_API_KEY"]
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
+    mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
+                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+    now = datetime.now()
+    mois_choisi = mois_list[now.month - 1]
+    annee_choisie = now.year
 
-    if st.button("💰", help="Notes de frais — Gestion des dépenses"):
-        st.session_state["page"] = "notes_frais"
-        st.rerun()
+    if page == "📄 Factures":
+        st.markdown("""
+        <div class="card">
+            <p style="color:#a0522d; font-weight:700; margin:0 0 0.5rem 0;">📖 Guide rapide</p>
+            <p style="color:#c8956c; font-size:0.85rem; margin:0;">
+            1. 📁 Uploadez vos factures<br>
+            2. 🚀 Lancez l'extraction<br>
+            3. ✏️ Vérifiez les données<br>
+            4. 📥 Exportez en Excel
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div class="card">
+            <p style="color:#a0522d; font-weight:700; margin:0 0 0.5rem 0;">📖 Guide rapide</p>
+            <p style="color:#c8956c; font-size:0.85rem; margin:0;">
+            1. ➕ Ajoutez une dépense<br>
+            2. 📸 Joignez le justificatif<br>
+            3. ✏️ Vérifiez les données<br>
+            4. 📥 Exportez en Excel
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown("<br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div style="text-align:center; margin-top:1rem;">
+        <div class="cat-ascii" style="font-size:0.9rem !important;">{ascii_to_html(CAT_ASCII_PETIT)}</div>
+        <p style="color:#d4a882; font-size:0.75rem; margin-top:0.3rem;">
+            Miaouu~ je veille sur vos dépenses
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    if st.button("🚪", help="Se déconnecter"):
+    st.markdown("---")
+    if st.button("🚪 Se déconnecter"):
         st.session_state["authenticated"] = False
         st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE : FACTURES
 # ══════════════════════════════════════════════════════════════════════════════
-if st.session_state["page"] == "factures":
+if page == "📄 Factures":
 
     st.markdown("""
     <div style="text-align:center; padding: 1.5rem 0;">
@@ -248,25 +266,6 @@ if st.session_state["page"] == "factures":
     """, unsafe_allow_html=True)
 
     st.markdown("---")
-
-    # ─── Clé API + Période ───────────────────────────────────────────────────
-    with st.expander("⚙️ Configuration", expanded=False):
-        api_key = st.text_input("🔑 Clé API Gemini", type="password",
-                                 value=st.session_state.get("api_key", ""))
-        if api_key:
-            st.session_state["api_key"] = api_key
-
-        mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
-                     "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-        col_m, col_a = st.columns(2)
-        with col_m:
-            mois_choisi = st.selectbox("📅 Mois", mois_list,
-                                        index=datetime.now().month - 1)
-        with col_a:
-            annee_choisie = st.selectbox("📅 Année", list(range(2023, 2031)),
-                                          index=list(range(2023, 2031)).index(datetime.now().year))
-
-    api_key = st.session_state.get("api_key", "")
 
     st.markdown("""
     <div class="cat-container">
@@ -468,20 +467,46 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
 
                 st.markdown("### 📊 Tableau de bord")
                 col1, col2, col3, col4 = st.columns(4)
-                try:
-                    montants_ttc = pd.to_numeric(df_edit["Montant TTC (€)"], errors="coerce").fillna(0)
-                    montants_ht  = pd.to_numeric(df_edit["Montant HT (€)"],  errors="coerce").fillna(0)
-                    montants_tva = pd.to_numeric(df_edit["TVA (€)"],          errors="coerce").fillna(0)
-                    with col1:
-                        st.metric("🧾 Factures", len(df_edit))
-                    with col2:
-                        st.metric("💶 Total TTC", f"{montants_ttc.sum():.2f} €")
-                    with col3:
-                        st.metric("📊 Total HT", f"{montants_ht.sum():.2f} €")
-                    with col4:
-                        st.metric("🏦 Total TVA", f"{montants_tva.sum():.2f} €")
-                except Exception:
-                    pass
+
+                with col1:
+                    st.markdown(f"""
+                    <div class="card" style="text-align:center;">
+                        <div style="font-size:2.5rem;">🐱</div>
+                        <div style="font-size:2rem; font-weight:800; color:#a0522d;">{len(df_edit)}</div>
+                        <div style="color:#c8956c;">Factures traitées</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col2:
+                    nb_valides = len(df_edit[df_edit["Statut"] == "Validé 😸"])
+                    st.markdown(f"""
+                    <div class="card" style="text-align:center;">
+                        <div style="font-size:2.5rem;">😸</div>
+                        <div style="font-size:2rem; font-weight:800; color:#2d6b4a;">{nb_valides}</div>
+                        <div style="color:#c8956c;">Validées</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col3:
+                    nb_erreurs = len(df_edit[df_edit["Statut"] == "Erreur 🙀"])
+                    st.markdown(f"""
+                    <div class="card" style="text-align:center;">
+                        <div style="font-size:2.5rem;">🙀</div>
+                        <div style="font-size:2rem; font-weight:800; color:#c0392b;">{nb_erreurs}</div>
+                        <div style="color:#c8956c;">Erreurs</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col4:
+                    try:
+                        total = df_edit["Montant TTC (€)"].replace('', '0').astype(float).sum()
+                        total_str = f"{total:,.2f} €"
+                    except:
+                        total_str = "N/A"
+                    st.markdown(f"""
+                    <div class="card" style="text-align:center;">
+                        <div style="font-size:2.5rem;">💰</div>
+                        <div style="font-size:1.5rem; font-weight:800; color:#a0522d;">{total_str}</div>
+                        <div style="color:#c8956c;">Total TTC</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
                 st.markdown("### 📄 Visualisation des Factures")
                 for idx, fichier in enumerate(fichiers):
@@ -525,7 +550,7 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
             <div style="font-size:2.5rem;">🙀</div>
             <div class="chat-bubble">
                 <span style="color:#a0522d; font-weight:700;">Miaou ! J'ai besoin de ta clé API... 🔑</span><br>
-                <span style="color:#c8956c;">Entre-la dans la configuration ci-dessus !</span>
+                <span style="color:#c8956c;">Entre-la dans le menu à gauche !</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -541,10 +566,11 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
         </div>
         """, unsafe_allow_html=True)
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE : NOTES DE FRAIS
 # ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state["page"] == "notes_frais":
+elif page == "💰 Notes de frais":
 
     st.markdown("""
     <div style="text-align:center; padding: 1.5rem 0;">
@@ -558,9 +584,11 @@ elif st.session_state["page"] == "notes_frais":
 
     st.markdown("---")
 
+    # Initialisation session
     if "notes_frais" not in st.session_state:
         st.session_state["notes_frais"] = []
 
+    # ─── FORMULAIRE AJOUT ─────────────────────────────────────────────────────
     st.markdown("""
     <div class="cat-container">
         <div style="font-size:3.5rem;">🐱</div>
@@ -586,11 +614,12 @@ elif st.session_state["page"] == "notes_frais":
         with col2:
             nf_montant_ht = st.number_input("💶 Montant HT (€)", min_value=0.0, step=0.01, format="%.2f")
             nf_tva = st.selectbox("📊 TVA", ["20%", "10%", "5.5%", "0%"])
-
+            
+            # Calcul automatique TTC
             tva_pct = float(nf_tva.replace("%", "")) / 100
             nf_montant_tva = round(nf_montant_ht * tva_pct, 2)
             nf_montant_ttc = round(nf_montant_ht + nf_montant_tva, 2)
-
+            
             st.markdown(f"""
             <div class="card" style="padding:1rem; margin-top:0.5rem;">
                 <p style="margin:0; color:#c8956c; font-size:0.85rem;">Calcul automatique :</p>
@@ -600,11 +629,21 @@ elif st.session_state["page"] == "notes_frais":
             """, unsafe_allow_html=True)
 
             nf_moyen_paiement = st.selectbox("💳 Moyen de paiement", [
-                "Carte bancaire", "Espèces", "Virement", "Chèque"
+                "Carte entreprise", "Espèces", "Carte personnelle", "Virement"
             ])
-            nf_justificatif = st.file_uploader("📎 Justificatif", type=["pdf", "jpg", "jpeg", "png"])
+            nf_justificatif = st.file_uploader(
+                "📸 Justificatif (optionnel)",
+                type=["pdf", "jpg", "jpeg", "png"],
+                key="justificatif_upload"
+            )
 
-        submitted = st.form_submit_button("➕ Ajouter la dépense", use_container_width=True)
+        col_submit = st.columns([1, 2, 1])
+        with col_submit[1]:
+            submitted = st.form_submit_button(
+                "➕ Ajouter la dépense 🐾",
+                use_container_width=True,
+                type="primary"
+            )
 
         if submitted:
             if not nf_employe:
@@ -629,7 +668,9 @@ elif st.session_state["page"] == "notes_frais":
                 st.success("✅ Dépense ajoutée avec succès ! 🐾")
                 st.rerun()
 
+    # ─── TABLEAU DES NOTES ────────────────────────────────────────────────────
     if st.session_state["notes_frais"]:
+        st.markdown("---")
         st.markdown("""
         <div class="cat-container">
             <div style="font-size:2.5rem;">😻</div>
@@ -641,8 +682,91 @@ elif st.session_state["page"] == "notes_frais":
         """, unsafe_allow_html=True)
 
         df_nf = pd.DataFrame(st.session_state["notes_frais"])
-        st.dataframe(df_nf, use_container_width=True, hide_index=True)
 
+        # Filtres rapides
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            filtre_employe = st.text_input("🔍 Filtrer par employé", "")
+        with col_f2:
+            filtre_categorie = st.selectbox("📂 Filtrer par catégorie", 
+                ["Toutes"] + list(df_nf["Catégorie"].unique()))
+        with col_f3:
+            filtre_statut = st.selectbox("🏷️ Filtrer par statut",
+                ["Tous", "En attente 😺", "Validé 😸", "Refusé 🙀"])
+
+        df_filtre = df_nf.copy()
+        if filtre_employe:
+            df_filtre = df_filtre[df_filtre["Employé"].str.contains(filtre_employe, case=False)]
+        if filtre_categorie != "Toutes":
+            df_filtre = df_filtre[df_filtre["Catégorie"] == filtre_categorie]
+        if filtre_statut != "Tous":
+            df_filtre = df_filtre[df_filtre["Statut"] == filtre_statut]
+
+        df_nf_edit = st.data_editor(
+            df_filtre,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Statut": st.column_config.SelectboxColumn(
+                    "Statut",
+                    options=["En attente 😺", "Validé 😸", "Refusé 🙀", "À vérifier 🐱"]
+                ),
+                "Catégorie": st.column_config.SelectboxColumn(
+                    "Catégorie",
+                    options=["Transport 🚗", "Repas 🍽️", "Hébergement 🏨",
+                             "Fournitures 📦", "Formation 🎓", "Client 🤝", "Autres"]
+                ),
+                "Montant HT (€)": st.column_config.NumberColumn(format="%.2f €"),
+                "Montant TVA (€)": st.column_config.NumberColumn(format="%.2f €"),
+                "Montant TTC (€)": st.column_config.NumberColumn(format="%.2f €"),
+            }
+        )
+
+        # ─── DASHBOARD ────────────────────────────────────────────────────────
+        st.markdown("### 📊 Tableau de bord")
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            st.markdown(f"""
+            <div class="card" style="text-align:center;">
+                <div style="font-size:2.5rem;">📝</div>
+                <div style="font-size:2rem; font-weight:800; color:#a0522d;">{len(df_nf)}</div>
+                <div style="color:#c8956c;">Total dépenses</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col2:
+            nb_validees = len(df_nf[df_nf["Statut"] == "Validé 😸"])
+            st.markdown(f"""
+            <div class="card" style="text-align:center;">
+                <div style="font-size:2.5rem;">😸</div>
+                <div style="font-size:2rem; font-weight:800; color:#2d6b4a;">{nb_validees}</div>
+                <div style="color:#c8956c;">Validées</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col3:
+            nb_attente = len(df_nf[df_nf["Statut"] == "En attente 😺"])
+            st.markdown(f"""
+            <div class="card" style="text-align:center;">
+                <div style="font-size:2.5rem;">😺</div>
+                <div style="font-size:2rem; font-weight:800; color:#e67e22;">{nb_attente}</div>
+                <div style="color:#c8956c;">En attente</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col4:
+            total_ttc = df_nf["Montant TTC (€)"].sum()
+            st.markdown(f"""
+            <div class="card" style="text-align:center;">
+                <div style="font-size:2.5rem;">💰</div>
+                <div style="font-size:1.5rem; font-weight:800; color:#a0522d;">{total_ttc:,.2f} €</div>
+                <div style="color:#c8956c;">Total TTC</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ─── BOUTONS ACTIONS ──────────────────────────────────────────────────
+        st.markdown("---")
         col_act1, col_act2, col_act3 = st.columns(3)
 
         with col_act1:
@@ -673,6 +797,7 @@ elif st.session_state["page"] == "notes_frais":
                 st.rerun()
 
     else:
+        # Aucune note encore
         st.markdown(f"""
         <div style="text-align:center; padding: 3rem 0;">
             <div class="cat-ascii" style="font-size:1.2rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
