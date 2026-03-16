@@ -11,28 +11,82 @@ from datetime import datetime
 st.set_page_config(page_title="FactureCat 🐱", page_icon="🐱", layout="wide")
 
 # ─── LOGIN ────────────────────────────────────────────────────────────────────
-def check_password():
-    def password_entered():
-        if (st.session_state["username"] == st.secrets["auth"]["username"] and
-            st.session_state["password"] == st.secrets["auth"]["password"]):
-            st.session_state["authenticated"] = True
-        else:
-            st.session_state["authenticated"] = False
+from supabase import create_client
 
+def get_supabase():
+    url = st.secrets["supabase"]["url"]
+    key = st.secrets["supabase"]["key"]
+    return create_client(url, key)
+
+def check_password():
     if "authenticated" not in st.session_state:
-        st.markdown("""
-        <div style="max-width:400px; margin:5rem auto; text-align:center;">
-            <div style="font-size:4rem;">🐱</div>
-            <h2 style="color:#a0522d;">FactureCat</h2>
-            <p style="color:#c8956c;">Connexion requise 🔐</p>
-        </div>
-        """, unsafe_allow_html=True)
-        col = st.columns([1, 2, 1])
-        with col[1]:
-            st.text_input("👤 Utilisateur", key="username")
-            st.text_input("🔑 Mot de passe", type="password", key="password")
-            st.button("🐾 Se connecter", on_click=password_entered, use_container_width=True)
-        return False
+        st.session_state["authenticated"] = False
+        st.session_state["user_email"] = ""
+
+    if st.session_state["authenticated"]:
+        return True
+
+    # Interface login
+    st.markdown("""
+    <div style="max-width:400px; margin:5rem auto; text-align:center;">
+        <div style="font-size:4rem;">🐱</div>
+        <h2 style="color:#a0522d;">FactureCat</h2>
+        <p style="color:#c8956c;">Connexion requise 🔐</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col = st.columns([1, 2, 1])
+    with col[1]:
+        mode = st.radio(
+            "Mode",
+            ["🔑 Se connecter", "✨ Créer un compte"],
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+
+        email = st.text_input("📧 Email")
+        password = st.text_input("🔑 Mot de passe", type="password")
+
+        if mode == "✨ Créer un compte":
+            password2 = st.text_input("🔑 Confirmer mot de passe", type="password")
+
+            if st.button("🐾 Créer mon compte", use_container_width=True):
+                if password != password2:
+                    st.error("❌ Mots de passe différents !")
+                elif len(password) < 6:
+                    st.error("❌ Minimum 6 caractères !")
+                else:
+                    try:
+                        supabase = get_supabase()
+                        res = supabase.auth.sign_up({
+                            "email": email,
+                            "password": password
+                        })
+                        if res.user:
+                            st.session_state["authenticated"] = True
+                            st.session_state["user_email"] = email
+                            st.success("✅ Bienvenue ! 🐾")
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Erreur : {e}")
+
+        else:
+            if st.button("🐾 Se connecter", use_container_width=True):
+                try:
+                    supabase = get_supabase()
+                    res = supabase.auth.sign_in_with_password({
+                        "email": email,
+                        "password": password
+                    })
+                    if res.user:
+                        st.session_state["authenticated"] = True
+                        st.session_state["user_email"] = email
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Email ou mot de passe incorrect 🙀")
+
+    return False
+
 
     elif not st.session_state["authenticated"]:
         st.markdown("""
