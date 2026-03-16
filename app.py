@@ -1,4 +1,4 @@
-peux tu le rajouter import streamlit as st
+import streamlit as st
 import streamlit.components.v1 as components
 import google.generativeai as genai
 import pandas as pd
