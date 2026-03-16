@@ -181,74 +181,64 @@ def ascii_to_html(ascii_art: str) -> str:
     return ascii_art.replace("\n", "<br>")
 
 # ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+# Dans la sidebar
 with st.sidebar:
     st.markdown("""
-    <div style="text-align:center; padding: 1rem 0;">
-        <div style="font-size: 3rem;">🐱</div>
-        <h2 style="color:#a0522d; margin:0;">FactureCat</h2>
-        <p style="color:#c8956c; font-size:0.85rem;">Votre assistant comptable félin</p>
-    </div>
+    <style>
+    [data-testid="stSidebar"] {
+        min-width: 70px !important;
+        max-width: 70px !important;
+    }
+    [data-testid="stSidebar"] .stButton button {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        font-size: 1.5rem;
+        padding: 0;
+        border: 2px solid transparent;
+        background: transparent;
+        transition: all 0.2s ease;
+        margin: 3px auto;
+        display: block;
+    }
+    [data-testid="stSidebar"] .stButton button:hover {
+        background: #f5e6d8;
+        border-color: #f0a070;
+        transform: scale(1.1);
+    }
+    /* Cache le label texte du radio/bouton */
+    [data-testid="stSidebar"] p { display: none; }
+    </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    
-    # ─── NAVIGATION ───────────────────────────────────────────────────────────
-    st.markdown("### 📂 Navigation")
-    page = st.radio(
-        "",
-        ["📄 Factures", "💰 Notes de frais"],
-        label_visibility="collapsed"
-    )
+    st.markdown("<br><br>", unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("### ⚙️ Configuration")
-    api_key = st.secrets["GEMINI_API_KEY"]
+    if st.button("📄", help="Factures — Extraction intelligente"):
+        st.session_state["page"] = "factures"
 
-    st.markdown("---")
-    mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
-                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-    now = datetime.now()
-    mois_choisi = mois_list[now.month - 1]
-    annee_choisie = now.year
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    if page == "📄 Factures":
-        st.markdown("""
-        <div class="card">
-            <p style="color:#a0522d; font-weight:700; margin:0 0 0.5rem 0;">📖 Guide rapide</p>
-            <p style="color:#c8956c; font-size:0.85rem; margin:0;">
-            1. 📁 Uploadez vos factures<br>
-            2. 🚀 Lancez l'extraction<br>
-            3. ✏️ Vérifiez les données<br>
-            4. 📥 Exportez en Excel
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class="card">
-            <p style="color:#a0522d; font-weight:700; margin:0 0 0.5rem 0;">📖 Guide rapide</p>
-            <p style="color:#c8956c; font-size:0.85rem; margin:0;">
-            1. ➕ Ajoutez une dépense<br>
-            2. 📸 Joignez le justificatif<br>
-            3. ✏️ Vérifiez les données<br>
-            4. 📥 Exportez en Excel
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+    if st.button("💰", help="Notes de frais — Gestion des dépenses"):
+        st.session_state["page"] = "notes_frais"
 
-    st.markdown(f"""
-    <div style="text-align:center; margin-top:1rem;">
-        <div class="cat-ascii" style="font-size:0.9rem !important;">{ascii_to_html(CAT_ASCII_PETIT)}</div>
-        <p style="color:#d4a882; font-size:0.75rem; margin-top:0.3rem;">
-            Miaouu~ je veille sur vos dépenses
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
 
-    st.markdown("---")
-    if st.button("🚪 Se déconnecter"):
+    if st.button("🚪", help="Se déconnecter"):
         st.session_state["authenticated"] = False
         st.rerun()
+
+# ─── INITIALISATION PAGE ─────────────────────────────────────────────────────
+if "page" not in st.session_state:
+    st.session_state["page"] = "factures"
+
+# ─── ROUTING ─────────────────────────────────────────────────────────────────
+if st.session_state["page"] == "factures":
+    # ── Tout votre code factures existant ici ──
+    pass
+
+elif st.session_state["page"] == "notes_frais":
+    # ── Tout votre code notes de frais ici ──
+    pass
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE : FACTURES
