@@ -46,36 +46,6 @@ def check_password():
         email = st.text_input("📧 Email")
         password = st.text_input("🔑 Mot de passe", type="password")
 
-        if st.button(
-            "🐾 Se connecter" if mode == "🔑 Se connecter" else "✨ Créer mon compte",
-            use_container_width=True
-        ):
-            if not email or not password:
-                st.error("❌ Veuillez remplir tous les champs !")
-            else:
-                try:
-                    supabase = get_supabase()
-                    if mode == "🔑 Se connecter":
-                        res = supabase.auth.sign_in_with_password({
-                            "email": email,
-                            "password": password
-                        })
-                    else:
-                        res = supabase.auth.sign_up({
-                            "email": email,
-                            "password": password
-                        })
-
-                    if res.user:
-                        st.session_state["authenticated"] = True
-                        st.session_state["user_email"] = res.user.email
-                        st.success("✅ Connexion réussie ! 🐾")
-                        st.rerun()
-                    else:
-                        st.error("❌ Échec de la connexion !")
-                except Exception as e:
-                    st.error(f"❌ Erreur : {str(e)}")
-
     return False
 
 if not check_password():
@@ -191,26 +161,23 @@ with st.sidebar:
         max-width: 70px !important;
     }
     [data-testid="stSidebar"] .stButton button {
-        width: 45px !important;
-        height: 45px !important;
-        border-radius: 12px !important;
-        font-size: 1.5rem !important;
-        padding: 0 !important;
-        border: 2px solid transparent !important;
-        background: transparent !important;
-        transition: all 0.2s ease !important;
-        margin: 3px auto !important;
-        display: block !important;
-        box-shadow: none !important;
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        font-size: 1.5rem;
+        padding: 0;
+        border: 2px solid transparent;
+        background: transparent;
+        transition: all 0.2s ease;
+        margin: 3px auto;
+        display: block;
     }
     [data-testid="stSidebar"] .stButton button:hover {
-        background: #f5e6d8 !important;
-        border-color: #f0a070 !important;
-        transform: scale(1.1) !important;
+        background: #f5e6d8;
+        border-color: #f0a070;
+        transform: scale(1.1);
     }
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
-        display: none;
-    }
+    [data-testid="stSidebar"] p { display: none; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -237,36 +204,7 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════════════════════
 if st.session_state["page"] == "factures":
 
-    st.markdown("""
-    <div style="text-align:center; padding: 1.5rem 0;">
-        <div style="font-size:4rem;">🐱</div>
-        <h1 style="margin:0;">FactureCat</h1>
-        <p style="color:#c8956c; margin:0.5rem 0 0 0; font-size:1.1rem;">
-            Extraction intelligente de factures 🐾
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
     st.markdown("---")
-
-    # ─── Clé API + Période ───────────────────────────────────────────────────
-    with st.expander("⚙️ Configuration", expanded=False):
-        api_key = st.text_input("🔑 Clé API Gemini", type="password",
-                                 value=st.session_state.get("api_key", ""))
-        if api_key:
-            st.session_state["api_key"] = api_key
-
-        mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
-                     "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-        col_m, col_a = st.columns(2)
-        with col_m:
-            mois_choisi = st.selectbox("📅 Mois", mois_list,
-                                        index=datetime.now().month - 1)
-        with col_a:
-            annee_choisie = st.selectbox("📅 Année", list(range(2023, 2031)),
-                                          index=list(range(2023, 2031)).index(datetime.now().year))
-
-    api_key = st.session_state.get("api_key", "")
 
     st.markdown("""
     <div class="cat-container">
@@ -468,20 +406,8 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
 
                 st.markdown("### 📊 Tableau de bord")
                 col1, col2, col3, col4 = st.columns(4)
-                try:
-                    montants_ttc = pd.to_numeric(df_edit["Montant TTC (€)"], errors="coerce").fillna(0)
-                    montants_ht  = pd.to_numeric(df_edit["Montant HT (€)"],  errors="coerce").fillna(0)
-                    montants_tva = pd.to_numeric(df_edit["TVA (€)"],          errors="coerce").fillna(0)
-                    with col1:
-                        st.metric("🧾 Factures", len(df_edit))
-                    with col2:
-                        st.metric("💶 Total TTC", f"{montants_ttc.sum():.2f} €")
-                    with col3:
-                        st.metric("📊 Total HT", f"{montants_ht.sum():.2f} €")
-                    with col4:
-                        st.metric("🏦 Total TVA", f"{montants_tva.sum():.2f} €")
-                except Exception:
-                    pass
+
+                # ── Vos métriques ici ──
 
                 st.markdown("### 📄 Visualisation des Factures")
                 for idx, fichier in enumerate(fichiers):
@@ -525,7 +451,7 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
             <div style="font-size:2.5rem;">🙀</div>
             <div class="chat-bubble">
                 <span style="color:#a0522d; font-weight:700;">Miaou ! J'ai besoin de ta clé API... 🔑</span><br>
-                <span style="color:#c8956c;">Entre-la dans la configuration ci-dessus !</span>
+                <span style="color:#c8956c;">Entre-la dans le menu à gauche !</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -630,16 +556,6 @@ elif st.session_state["page"] == "notes_frais":
                 st.rerun()
 
     if st.session_state["notes_frais"]:
-        st.markdown("""
-        <div class="cat-container">
-            <div style="font-size:2.5rem;">😻</div>
-            <div class="chat-bubble">
-                <span style="color:#a0522d; font-weight:700;">Vos notes de frais 🐾</span><br>
-                <span style="color:#c8956c;">Modifiez directement dans le tableau !</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
         df_nf = pd.DataFrame(st.session_state["notes_frais"])
         st.dataframe(df_nf, use_container_width=True, hide_index=True)
 
