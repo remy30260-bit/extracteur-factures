@@ -26,7 +26,6 @@ def check_password():
     if st.session_state["authenticated"]:
         return True
 
-    # Interface login
     st.markdown("""
     <div style="max-width:400px; margin:5rem auto; text-align:center;">
         <div style="font-size:4rem;">🐱</div>
@@ -86,25 +85,6 @@ def check_password():
                     st.error(f"❌ Email ou mot de passe incorrect 🙀")
 
     return False
-
-
-    elif not st.session_state["authenticated"]:
-        st.markdown("""
-        <div style="max-width:400px; margin:5rem auto; text-align:center;">
-            <div style="font-size:4rem;">🙀</div>
-            <h2 style="color:#a0522d;">FactureCat</h2>
-            <p style="color:#c8956c;">Connexion requise 🔐</p>
-        </div>
-        """, unsafe_allow_html=True)
-        col = st.columns([1, 2, 1])
-        with col[1]:
-            st.text_input("👤 Utilisateur", key="username")
-            st.text_input("🔑 Mot de passe", type="password", key="password")
-            st.button("🐾 Se connecter", on_click=password_entered, use_container_width=True)
-            st.error("❌ Identifiants incorrects, miaou !")
-        return False
-
-    return True
 
 if not check_password():
     st.stop()
@@ -271,7 +251,6 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    # Bouton déconnexion
     st.markdown("---")
     if st.button("🚪 Se déconnecter"):
         st.session_state["authenticated"] = False
