@@ -46,36 +46,6 @@ def check_password():
         email = st.text_input("📧 Email")
         password = st.text_input("🔑 Mot de passe", type="password")
 
-        if mode == "✨ Créer un compte":
-            password2 = st.text_input("🔑 Confirmer mot de passe", type="password")
-            if st.button("🐾 Créer mon compte", use_container_width=True):
-                if password != password2:
-                    st.error("❌ Mots de passe différents !")
-                elif len(password) < 6:
-                    st.error("❌ Minimum 6 caractères !")
-                else:
-                    try:
-                        supabase = get_supabase()
-                        res = supabase.auth.sign_up({"email": email, "password": password})
-                        if res.user:
-                            st.session_state["authenticated"] = True
-                            st.session_state["user_email"] = email
-                            st.success("✅ Bienvenue ! 🐾")
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Erreur : {e}")
-        else:
-            if st.button("🐾 Se connecter", use_container_width=True):
-                try:
-                    supabase = get_supabase()
-                    res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                    if res.user:
-                        st.session_state["authenticated"] = True
-                        st.session_state["user_email"] = email
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Email ou mot de passe incorrect 🙀")
-
     return False
 
 if not check_password():
@@ -156,8 +126,6 @@ st.markdown("""
         display: block !important; text-align: center !important;
         width: fit-content !important; max-width: 100% !important;
     }
-    /* Style navigation active */
-    div[data-testid="stRadio"] > div { gap: 0.5rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -180,8 +148,11 @@ CAT_ASCII_PETIT = (
 def ascii_to_html(ascii_art: str) -> str:
     return ascii_art.replace("\n", "<br>")
 
+# ─── INITIALISATION PAGE ──────────────────────────────────────────────────────
+if "page" not in st.session_state:
+    st.session_state["page"] = "factures"
+
 # ─── SIDEBAR ──────────────────────────────────────────────────────────────────
-# Dans la sidebar
 with st.sidebar:
     st.markdown("""
     <style>
@@ -206,7 +177,6 @@ with st.sidebar:
         border-color: #f0a070;
         transform: scale(1.1);
     }
-    /* Cache le label texte du radio/bouton */
     [data-testid="stSidebar"] p { display: none; }
     </style>
     """, unsafe_allow_html=True)
@@ -215,45 +185,24 @@ with st.sidebar:
 
     if st.button("📄", help="Factures — Extraction intelligente"):
         st.session_state["page"] = "factures"
+        st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     if st.button("💰", help="Notes de frais — Gestion des dépenses"):
         st.session_state["page"] = "notes_frais"
+        st.rerun()
 
-    st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
+    st.markdown("<br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
 
     if st.button("🚪", help="Se déconnecter"):
         st.session_state["authenticated"] = False
         st.rerun()
 
-# ─── INITIALISATION PAGE ─────────────────────────────────────────────────────
-if "page" not in st.session_state:
-    st.session_state["page"] = "factures"
-
-# ─── ROUTING ─────────────────────────────────────────────────────────────────
-if st.session_state["page"] == "factures":
-    # ── Tout votre code factures existant ici ──
-    pass
-
-elif st.session_state["page"] == "notes_frais":
-    # ── Tout votre code notes de frais ici ──
-    pass
-
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE : FACTURES
 # ══════════════════════════════════════════════════════════════════════════════
-if page == "📄 Factures":
-
-    st.markdown("""
-    <div style="text-align:center; padding: 1.5rem 0;">
-        <div style="font-size:4rem;">🐱</div>
-        <h1 style="margin:0;">FactureCat</h1>
-        <p style="color:#c8956c; margin:0.5rem 0 0 0; font-size:1.1rem;">
-            Extraction intelligente de factures 🐾
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+if st.session_state["page"] == "factures":
 
     st.markdown("---")
 
@@ -458,45 +407,7 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
                 st.markdown("### 📊 Tableau de bord")
                 col1, col2, col3, col4 = st.columns(4)
 
-                with col1:
-                    st.markdown(f"""
-                    <div class="card" style="text-align:center;">
-                        <div style="font-size:2.5rem;">🐱</div>
-                        <div style="font-size:2rem; font-weight:800; color:#a0522d;">{len(df_edit)}</div>
-                        <div style="color:#c8956c;">Factures traitées</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col2:
-                    nb_valides = len(df_edit[df_edit["Statut"] == "Validé 😸"])
-                    st.markdown(f"""
-                    <div class="card" style="text-align:center;">
-                        <div style="font-size:2.5rem;">😸</div>
-                        <div style="font-size:2rem; font-weight:800; color:#2d6b4a;">{nb_valides}</div>
-                        <div style="color:#c8956c;">Validées</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col3:
-                    nb_erreurs = len(df_edit[df_edit["Statut"] == "Erreur 🙀"])
-                    st.markdown(f"""
-                    <div class="card" style="text-align:center;">
-                        <div style="font-size:2.5rem;">🙀</div>
-                        <div style="font-size:2rem; font-weight:800; color:#c0392b;">{nb_erreurs}</div>
-                        <div style="color:#c8956c;">Erreurs</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col4:
-                    try:
-                        total = df_edit["Montant TTC (€)"].replace('', '0').astype(float).sum()
-                        total_str = f"{total:,.2f} €"
-                    except:
-                        total_str = "N/A"
-                    st.markdown(f"""
-                    <div class="card" style="text-align:center;">
-                        <div style="font-size:2.5rem;">💰</div>
-                        <div style="font-size:1.5rem; font-weight:800; color:#a0522d;">{total_str}</div>
-                        <div style="color:#c8956c;">Total TTC</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                # ── Vos métriques ici ──
 
                 st.markdown("### 📄 Visualisation des Factures")
                 for idx, fichier in enumerate(fichiers):
@@ -556,11 +467,10 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
         </div>
         """, unsafe_allow_html=True)
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE : NOTES DE FRAIS
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "💰 Notes de frais":
+elif st.session_state["page"] == "notes_frais":
 
     st.markdown("""
     <div style="text-align:center; padding: 1.5rem 0;">
@@ -574,11 +484,9 @@ elif page == "💰 Notes de frais":
 
     st.markdown("---")
 
-    # Initialisation session
     if "notes_frais" not in st.session_state:
         st.session_state["notes_frais"] = []
 
-    # ─── FORMULAIRE AJOUT ─────────────────────────────────────────────────────
     st.markdown("""
     <div class="cat-container">
         <div style="font-size:3.5rem;">🐱</div>
@@ -604,12 +512,11 @@ elif page == "💰 Notes de frais":
         with col2:
             nf_montant_ht = st.number_input("💶 Montant HT (€)", min_value=0.0, step=0.01, format="%.2f")
             nf_tva = st.selectbox("📊 TVA", ["20%", "10%", "5.5%", "0%"])
-            
-            # Calcul automatique TTC
+
             tva_pct = float(nf_tva.replace("%", "")) / 100
             nf_montant_tva = round(nf_montant_ht * tva_pct, 2)
             nf_montant_ttc = round(nf_montant_ht + nf_montant_tva, 2)
-            
+
             st.markdown(f"""
             <div class="card" style="padding:1rem; margin-top:0.5rem;">
                 <p style="margin:0; color:#c8956c; font-size:0.85rem;">Calcul automatique :</p>
@@ -619,21 +526,11 @@ elif page == "💰 Notes de frais":
             """, unsafe_allow_html=True)
 
             nf_moyen_paiement = st.selectbox("💳 Moyen de paiement", [
-                "Carte entreprise", "Espèces", "Carte personnelle", "Virement"
+                "Carte bancaire", "Espèces", "Virement", "Chèque"
             ])
-            nf_justificatif = st.file_uploader(
-                "📸 Justificatif (optionnel)",
-                type=["pdf", "jpg", "jpeg", "png"],
-                key="justificatif_upload"
-            )
+            nf_justificatif = st.file_uploader("📎 Justificatif", type=["pdf", "jpg", "jpeg", "png"])
 
-        col_submit = st.columns([1, 2, 1])
-        with col_submit[1]:
-            submitted = st.form_submit_button(
-                "➕ Ajouter la dépense 🐾",
-                use_container_width=True,
-                type="primary"
-            )
+        submitted = st.form_submit_button("➕ Ajouter la dépense", use_container_width=True)
 
         if submitted:
             if not nf_employe:
@@ -658,105 +555,10 @@ elif page == "💰 Notes de frais":
                 st.success("✅ Dépense ajoutée avec succès ! 🐾")
                 st.rerun()
 
-    # ─── TABLEAU DES NOTES ────────────────────────────────────────────────────
     if st.session_state["notes_frais"]:
-        st.markdown("---")
-        st.markdown("""
-        <div class="cat-container">
-            <div style="font-size:2.5rem;">😻</div>
-            <div class="chat-bubble">
-                <span style="color:#a0522d; font-weight:700;">Vos notes de frais 🐾</span><br>
-                <span style="color:#c8956c;">Modifiez directement dans le tableau !</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
         df_nf = pd.DataFrame(st.session_state["notes_frais"])
+        st.dataframe(df_nf, use_container_width=True, hide_index=True)
 
-        # Filtres rapides
-        col_f1, col_f2, col_f3 = st.columns(3)
-        with col_f1:
-            filtre_employe = st.text_input("🔍 Filtrer par employé", "")
-        with col_f2:
-            filtre_categorie = st.selectbox("📂 Filtrer par catégorie", 
-                ["Toutes"] + list(df_nf["Catégorie"].unique()))
-        with col_f3:
-            filtre_statut = st.selectbox("🏷️ Filtrer par statut",
-                ["Tous", "En attente 😺", "Validé 😸", "Refusé 🙀"])
-
-        df_filtre = df_nf.copy()
-        if filtre_employe:
-            df_filtre = df_filtre[df_filtre["Employé"].str.contains(filtre_employe, case=False)]
-        if filtre_categorie != "Toutes":
-            df_filtre = df_filtre[df_filtre["Catégorie"] == filtre_categorie]
-        if filtre_statut != "Tous":
-            df_filtre = df_filtre[df_filtre["Statut"] == filtre_statut]
-
-        df_nf_edit = st.data_editor(
-            df_filtre,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Statut": st.column_config.SelectboxColumn(
-                    "Statut",
-                    options=["En attente 😺", "Validé 😸", "Refusé 🙀", "À vérifier 🐱"]
-                ),
-                "Catégorie": st.column_config.SelectboxColumn(
-                    "Catégorie",
-                    options=["Transport 🚗", "Repas 🍽️", "Hébergement 🏨",
-                             "Fournitures 📦", "Formation 🎓", "Client 🤝", "Autres"]
-                ),
-                "Montant HT (€)": st.column_config.NumberColumn(format="%.2f €"),
-                "Montant TVA (€)": st.column_config.NumberColumn(format="%.2f €"),
-                "Montant TTC (€)": st.column_config.NumberColumn(format="%.2f €"),
-            }
-        )
-
-        # ─── DASHBOARD ────────────────────────────────────────────────────────
-        st.markdown("### 📊 Tableau de bord")
-        col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-            st.markdown(f"""
-            <div class="card" style="text-align:center;">
-                <div style="font-size:2.5rem;">📝</div>
-                <div style="font-size:2rem; font-weight:800; color:#a0522d;">{len(df_nf)}</div>
-                <div style="color:#c8956c;">Total dépenses</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col2:
-            nb_validees = len(df_nf[df_nf["Statut"] == "Validé 😸"])
-            st.markdown(f"""
-            <div class="card" style="text-align:center;">
-                <div style="font-size:2.5rem;">😸</div>
-                <div style="font-size:2rem; font-weight:800; color:#2d6b4a;">{nb_validees}</div>
-                <div style="color:#c8956c;">Validées</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col3:
-            nb_attente = len(df_nf[df_nf["Statut"] == "En attente 😺"])
-            st.markdown(f"""
-            <div class="card" style="text-align:center;">
-                <div style="font-size:2.5rem;">😺</div>
-                <div style="font-size:2rem; font-weight:800; color:#e67e22;">{nb_attente}</div>
-                <div style="color:#c8956c;">En attente</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col4:
-            total_ttc = df_nf["Montant TTC (€)"].sum()
-            st.markdown(f"""
-            <div class="card" style="text-align:center;">
-                <div style="font-size:2.5rem;">💰</div>
-                <div style="font-size:1.5rem; font-weight:800; color:#a0522d;">{total_ttc:,.2f} €</div>
-                <div style="color:#c8956c;">Total TTC</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        # ─── BOUTONS ACTIONS ──────────────────────────────────────────────────
-        st.markdown("---")
         col_act1, col_act2, col_act3 = st.columns(3)
 
         with col_act1:
@@ -787,7 +589,6 @@ elif page == "💰 Notes de frais":
                 st.rerun()
 
     else:
-        # Aucune note encore
         st.markdown(f"""
         <div style="text-align:center; padding: 3rem 0;">
             <div class="cat-ascii" style="font-size:1.2rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
