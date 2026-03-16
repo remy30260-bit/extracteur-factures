@@ -42,7 +42,6 @@ def check_password():
             horizontal=True,
             label_visibility="collapsed"
         )
-
         email = st.text_input("📧 Email")
         password = st.text_input("🔑 Mot de passe", type="password")
 
@@ -60,6 +59,8 @@ st.markdown("""
     [data-testid="stSidebar"] {
         background-color: #fff8f3;
         border-right: 2px solid #f0d5c0;
+        min-width: 70px !important;
+        max-width: 70px !important;
     }
     h1 { color: #a0522d; font-weight: 800; }
     h2, h3 { color: #c8956c; }
@@ -126,6 +127,34 @@ st.markdown("""
         display: block !important; text-align: center !important;
         width: fit-content !important; max-width: 100% !important;
     }
+
+    /* ── SIDEBAR ICÔNES ── */
+    [data-testid="stSidebar"] .stButton button {
+        width: 45px !important;
+        height: 45px !important;
+        border-radius: 12px !important;
+        font-size: 1.5rem !important;
+        padding: 0 !important;
+        border: 2px solid transparent !important;
+        background: #fff8f3 !important;
+        color: inherit !important;
+        box-shadow: none !important;
+        transition: all 0.2s ease !important;
+        margin: 3px auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    [data-testid="stSidebar"] .stButton button:hover {
+        background: #f5e6d8 !important;
+        border-color: #f0a070 !important;
+        transform: scale(1.1) !important;
+        box-shadow: none !important;
+    }
+    /* Cache uniquement les paragraphes markdown de la sidebar, PAS les emojis des boutons */
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+        display: none !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -148,39 +177,12 @@ CAT_ASCII_PETIT = (
 def ascii_to_html(ascii_art: str) -> str:
     return ascii_art.replace("\n", "<br>")
 
-# ─── INITIALISATION PAGE ──────────────────────────────────────────────────────
+# ─── INITIALISATION ───────────────────────────────────────────────────────────
 if "page" not in st.session_state:
     st.session_state["page"] = "factures"
 
 # ─── SIDEBAR ──────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("""
-    <style>
-    [data-testid="stSidebar"] {
-        min-width: 70px !important;
-        max-width: 70px !important;
-    }
-    [data-testid="stSidebar"] .stButton button {
-        width: 45px;
-        height: 45px;
-        border-radius: 12px;
-        font-size: 1.5rem;
-        padding: 0;
-        border: 2px solid transparent;
-        background: transparent;
-        transition: all 0.2s ease;
-        margin: 3px auto;
-        display: block;
-    }
-    [data-testid="stSidebar"] .stButton button:hover {
-        background: #f5e6d8;
-        border-color: #f0a070;
-        transform: scale(1.1);
-    }
-    [data-testid="stSidebar"] p { display: none; }
-    </style>
-    """, unsafe_allow_html=True)
-
     st.markdown("<br><br>", unsafe_allow_html=True)
 
     if st.button("📄", help="Factures — Extraction intelligente"):
@@ -217,6 +219,26 @@ if st.session_state["page"] == "factures":
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # ─── CONFIGURATION ────────────────────────────────────────────────────────
+    with st.expander("⚙️ Configuration", expanded=not st.session_state.get("api_key")):
+        api_key = st.text_input("🔑 Clé API Gemini", type="password",
+                                value=st.session_state.get("api_key", ""),
+                                help="Obtenez votre clé sur https://makersuite.google.com/")
+        if api_key:
+            st.session_state["api_key"] = api_key
+
+        col_m, col_a = st.columns(2)
+        mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
+                     "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+        with col_m:
+            mois_choisi = st.selectbox("📅 Mois", mois_list,
+                                       index=datetime.now().month - 1)
+        with col_a:
+            annee_choisie = st.selectbox("📅 Année", list(range(2023, 2031)),
+                                         index=list(range(2023, 2031)).index(datetime.now().year))
+
+    api_key = st.session_state.get("api_key", "")
 
     fichiers = st.file_uploader(
         "🐾 Glissez vos factures ici",
@@ -407,7 +429,37 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
                 st.markdown("### 📊 Tableau de bord")
                 col1, col2, col3, col4 = st.columns(4)
 
-                # ── Vos métriques ici ──
+                try:
+                    total_ttc = sum(float(str(r.get("montant_ttc","0")).replace(",",".") or 0) for r in resultats)
+                    total_ht  = sum(float(str(r.get("montant_ht","0")).replace(",",".") or 0) for r in resultats)
+                    total_tva = sum(float(str(r.get("tva","0")).replace(",",".") or 0) for r in resultats)
+                except:
+                    total_ttc = total_ht = total_tva = 0
+
+                with col1:
+                    st.markdown(f"""<div class="card" style="text-align:center;">
+                        <div style="font-size:2rem;">📄</div>
+                        <div style="font-size:1.8rem; font-weight:800; color:#a0522d;">{len(resultats)}</div>
+                        <div style="color:#c8956c;">Factures</div>
+                    </div>""", unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f"""<div class="card" style="text-align:center;">
+                        <div style="font-size:2rem;">💶</div>
+                        <div style="font-size:1.8rem; font-weight:800; color:#a0522d;">{total_ht:.2f} €</div>
+                        <div style="color:#c8956c;">Total HT</div>
+                    </div>""", unsafe_allow_html=True)
+                with col3:
+                    st.markdown(f"""<div class="card" style="text-align:center;">
+                        <div style="font-size:2rem;">🧾</div>
+                        <div style="font-size:1.8rem; font-weight:800; color:#a0522d;">{total_tva:.2f} €</div>
+                        <div style="color:#c8956c;">Total TVA</div>
+                    </div>""", unsafe_allow_html=True)
+                with col4:
+                    st.markdown(f"""<div class="card" style="text-align:center;">
+                        <div style="font-size:2rem;">💰</div>
+                        <div style="font-size:1.8rem; font-weight:800; color:#a0522d;">{total_ttc:.2f} €</div>
+                        <div style="color:#c8956c;">Total TTC</div>
+                    </div>""", unsafe_allow_html=True)
 
                 st.markdown("### 📄 Visualisation des Factures")
                 for idx, fichier in enumerate(fichiers):
@@ -451,7 +503,7 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
             <div style="font-size:2.5rem;">🙀</div>
             <div class="chat-bubble">
                 <span style="color:#a0522d; font-weight:700;">Miaou ! J'ai besoin de ta clé API... 🔑</span><br>
-                <span style="color:#c8956c;">Entre-la dans le menu à gauche !</span>
+                <span style="color:#c8956c;">Entre-la dans la configuration ci-dessus !</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -556,6 +608,16 @@ elif st.session_state["page"] == "notes_frais":
                 st.rerun()
 
     if st.session_state["notes_frais"]:
+        st.markdown("""
+        <div class="cat-container">
+            <div style="font-size:2.5rem;">😻</div>
+            <div class="chat-bubble">
+                <span style="color:#a0522d; font-weight:700;">Vos notes de frais 🐾</span><br>
+                <span style="color:#c8956c;">Modifiez directement dans le tableau !</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
         df_nf = pd.DataFrame(st.session_state["notes_frais"])
         st.dataframe(df_nf, use_container_width=True, hide_index=True)
 
