@@ -1,1 +1,2 @@
-# extracteur-factures
+# FactureCat 🐱
+Application de traitement de factures
