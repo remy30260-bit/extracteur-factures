@@ -430,4 +430,233 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
                 col1, col2, col3, col4 = st.columns(4)
 
                 try:
-                    total_ttc = sum(float(str(r.get("montant_ttc","0")).replace(",",".")
+                    total_ttc = sum(float(str(r.get("montant_ttc","0")).replace(",",".") or 0) for r in resultats)
+                    total_ht  = sum(float(str(r.get("montant_ht","0")).replace(",",".") or 0) for r in resultats)
+                    total_tva = sum(float(str(r.get("tva","0")).replace(",",".") or 0) for r in resultats)
+                except:
+                    total_ttc = total_ht = total_tva = 0
+
+                with col1:
+                    st.markdown(f"""<div class="card" style="text-align:center;">
+                        <div style="font-size:2rem;">📄</div>
+                        <div style="font-size:1.8rem; font-weight:800; color:#a0522d;">{len(resultats)}</div>
+                        <div style="color:#c8956c;">Factures</div>
+                    </div>""", unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f"""<div class="card" style="text-align:center;">
+                        <div style="font-size:2rem;">💶</div>
+                        <div style="font-size:1.8rem; font-weight:800; color:#a0522d;">{total_ht:.2f} €</div>
+                        <div style="color:#c8956c;">Total HT</div>
+                    </div>""", unsafe_allow_html=True)
+                with col3:
+                    st.markdown(f"""<div class="card" style="text-align:center;">
+                        <div style="font-size:2rem;">🧾</div>
+                        <div style="font-size:1.8rem; font-weight:800; color:#a0522d;">{total_tva:.2f} €</div>
+                        <div style="color:#c8956c;">Total TVA</div>
+                    </div>""", unsafe_allow_html=True)
+                with col4:
+                    st.markdown(f"""<div class="card" style="text-align:center;">
+                        <div style="font-size:2rem;">💰</div>
+                        <div style="font-size:1.8rem; font-weight:800; color:#a0522d;">{total_ttc:.2f} €</div>
+                        <div style="color:#c8956c;">Total TTC</div>
+                    </div>""", unsafe_allow_html=True)
+
+                st.markdown("### 📄 Visualisation des Factures")
+                for idx, fichier in enumerate(fichiers):
+                    with st.expander(f"Voir {fichier.name}", expanded=(idx == 0)):
+                        fichier.seek(0)
+                        if fichier.type == "application/pdf":
+                            images = pdf_to_images(fichier.read())
+                            st.image(images[0], use_container_width=True)
+                            if len(images) > 1:
+                                st.caption(f"📄 {len(images)} page(s)")
+                        else:
+                            st.image(Image.open(fichier), use_container_width=True)
+
+                st.markdown("---")
+                buffer = io.BytesIO()
+                df_edit.to_excel(buffer, index=False, engine="openpyxl")
+                buffer.seek(0)
+
+                col_dl = st.columns([1, 2, 1])
+                with col_dl[1]:
+                    st.download_button(
+                        label="📥 Télécharger Excel 🐾",
+                        data=buffer,
+                        file_name=f"factures_{mois_rapide}_{annee_rapide}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True
+                    )
+
+                st.markdown("---")
+                st.markdown(f"""
+                <div style="text-align:center; padding: 1rem 0;">
+                    <div class="cat-ascii">{ascii_to_html(CAT_ASCII_GRAND)}</div>
+                    <p style="color:#a0522d; font-weight:700; margin-top:0.8rem;">Purrrfait travail ! 🐾</p>
+                    <p style="color:#c8956c; font-size:0.85rem;">FactureCat — Votre comptable félin 🐱</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+    elif fichiers and not api_key:
+        st.markdown("""
+        <div class="cat-container">
+            <div style="font-size:2.5rem;">🙀</div>
+            <div class="chat-bubble">
+                <span style="color:#a0522d; font-weight:700;">Miaou ! J'ai besoin de ta clé API... 🔑</span><br>
+                <span style="color:#c8956c;">Entre-la dans la configuration ci-dessus !</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    elif not fichiers:
+        st.markdown(f"""
+        <div style="text-align:center; padding: 3rem 0;">
+            <div class="cat-ascii" style="font-size:1.2rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
+            <p style="font-size:1.2rem; font-weight:700; color:#a0522d; margin-top:1rem;">
+                Uploadez vos factures pour commencer !
+            </p>
+            <p style="color:#c8956c;">Je suis prêt à analyser vos documents 🐾</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE : NOTES DE FRAIS
+# ══════════════════════════════════════════════════════════════════════════════
+elif st.session_state["page"] == "notes_frais":
+
+    st.markdown("""
+    <div style="text-align:center; padding: 1.5rem 0;">
+        <div style="font-size:4rem;">💰</div>
+        <h1 style="margin:0;">Notes de Frais</h1>
+        <p style="color:#c8956c; margin:0.5rem 0 0 0; font-size:1.1rem;">
+            Gérez vos dépenses professionnelles 🐾
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    if "notes_frais" not in st.session_state:
+        st.session_state["notes_frais"] = []
+
+    st.markdown("""
+    <div class="cat-container">
+        <div style="font-size:3.5rem;">🐱</div>
+        <div class="chat-bubble">
+            <strong style="color:#a0522d;">Ajoutez une dépense 🐾</strong><br>
+            <span style="color:#c8956c;">Remplissez le formulaire et joignez votre justificatif !</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form("form_note_frais", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            nf_date = st.date_input("📅 Date", value=datetime.now())
+            nf_employe = st.text_input("👤 Employé / Nom")
+            nf_categorie = st.selectbox("📂 Catégorie", [
+                "Transport 🚗", "Repas 🍽️", "Hébergement 🏨",
+                "Fournitures 📦", "Formation 🎓", "Client 🤝", "Autres"
+            ])
+            nf_description = st.text_area("📝 Description", height=80)
+
+        with col2:
+            nf_montant_ht = st.number_input("💶 Montant HT (€)", min_value=0.0, step=0.01, format="%.2f")
+            nf_tva = st.selectbox("📊 TVA", ["20%", "10%", "5.5%", "0%"])
+
+            tva_pct = float(nf_tva.replace("%", "")) / 100
+            nf_montant_tva = round(nf_montant_ht * tva_pct, 2)
+            nf_montant_ttc = round(nf_montant_ht + nf_montant_tva, 2)
+
+            st.markdown(f"""
+            <div class="card" style="padding:1rem; margin-top:0.5rem;">
+                <p style="margin:0; color:#c8956c; font-size:0.85rem;">Calcul automatique :</p>
+                <p style="margin:0.2rem 0; color:#a0522d;">TVA : <strong>{nf_montant_tva:.2f} €</strong></p>
+                <p style="margin:0; color:#a0522d; font-size:1.1rem;">TTC : <strong>{nf_montant_ttc:.2f} €</strong></p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            nf_moyen_paiement = st.selectbox("💳 Moyen de paiement", [
+                "Carte bancaire", "Espèces", "Virement", "Chèque"
+            ])
+            nf_justificatif = st.file_uploader("📎 Justificatif", type=["pdf", "jpg", "jpeg", "png"])
+
+        submitted = st.form_submit_button("➕ Ajouter la dépense", use_container_width=True)
+
+        if submitted:
+            if not nf_employe:
+                st.error("❌ Veuillez saisir un nom d'employé !")
+            elif nf_montant_ht <= 0:
+                st.error("❌ Le montant doit être supérieur à 0 !")
+            else:
+                nouvelle_note = {
+                    "Date": nf_date.strftime("%d/%m/%Y"),
+                    "Employé": nf_employe,
+                    "Catégorie": nf_categorie,
+                    "Description": nf_description,
+                    "Montant HT (€)": nf_montant_ht,
+                    "TVA": nf_tva,
+                    "Montant TVA (€)": nf_montant_tva,
+                    "Montant TTC (€)": nf_montant_ttc,
+                    "Moyen de paiement": nf_moyen_paiement,
+                    "Justificatif": nf_justificatif.name if nf_justificatif else "—",
+                    "Statut": "En attente 😺"
+                }
+                st.session_state["notes_frais"].append(nouvelle_note)
+                st.success("✅ Dépense ajoutée avec succès ! 🐾")
+                st.rerun()
+
+    if st.session_state["notes_frais"]:
+        st.markdown("""
+        <div class="cat-container">
+            <div style="font-size:2.5rem;">😻</div>
+            <div class="chat-bubble">
+                <span style="color:#a0522d; font-weight:700;">Vos notes de frais 🐾</span><br>
+                <span style="color:#c8956c;">Modifiez directement dans le tableau !</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        df_nf = pd.DataFrame(st.session_state["notes_frais"])
+        st.dataframe(df_nf, use_container_width=True, hide_index=True)
+
+        col_act1, col_act2, col_act3 = st.columns(3)
+
+        with col_act1:
+            buffer_nf = io.BytesIO()
+            df_nf.to_excel(buffer_nf, index=False, engine="openpyxl")
+            buffer_nf.seek(0)
+            st.download_button(
+                label="📥 Exporter Excel 🐾",
+                data=buffer_nf,
+                file_name=f"notes_frais_{datetime.now().strftime('%Y%m')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+
+        with col_act2:
+            csv_nf = df_nf.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="📄 Exporter CSV",
+                data=csv_nf,
+                file_name=f"notes_frais_{datetime.now().strftime('%Y%m')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+        with col_act3:
+            if st.button("🗑️ Effacer tout", use_container_width=True):
+                st.session_state["notes_frais"] = []
+                st.rerun()
+
+    else:
+        st.markdown(f"""
+        <div style="text-align:center; padding: 3rem 0;">
+            <div class="cat-ascii" style="font-size:1.2rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
+            <p style="font-size:1.2rem; font-weight:700; color:#a0522d; margin-top:1rem;">
+                Aucune note de frais pour l'instant !
+            </p>
+            <p style="color:#c8956c;">Ajoutez votre première dépense avec le formulaire ci-dessus 🐾</p>
+        </div>
+        """, unsafe_allow_html=True)
