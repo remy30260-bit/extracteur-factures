@@ -752,7 +752,7 @@ Réponds en français, de façon concise et utile, avec des emojis 🐾."""
                     use_container_width=True
                 )
 
-                        with col_act3:
+             with col_act3:
                 if st.button("🗑️ Effacer tout", use_container_width=True, key="clear_factures"):
                     st.session_state["factures"] = []
                     st.session_state["uploaded_files_data"] = {}
