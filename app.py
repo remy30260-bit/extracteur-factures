@@ -66,7 +66,7 @@ if not check_password():
     st.stop()
 
 # CONFIG GEMINI
-genai.configure(api_key=st.secrets["gemini"]["api_key"])
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 def pdf_to_image(pdf_bytes):
     doc  = fitz.open(stream=pdf_bytes, filetype="pdf")
