@@ -6,6 +6,8 @@ import fitz
 from PIL import Image
 import io
 from datetime import datetime
+import plotly.express as px
+import plotly.graph_objects as go
 from supabase import create_client
 
 st.set_page_config(page_title="FactureCat 🐱", page_icon="🐱", layout="wide")
@@ -24,20 +26,17 @@ def configure_gemini():
         return None
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CSS GLOBAL + TOPBAR
+# CSS GLOBAL
 # ═══════════════════════════════════════════════════════════════════════════════
 def inject_css():
     st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
     * { font-family: 'Inter', sans-serif !important; }
 
-    /* Cache sidebar */
     [data-testid="stSidebar"] { display: none !important; }
     [data-testid="collapsedControl"] { display: none !important; }
 
-    /* Background */
     .main, .block-container {
         background: linear-gradient(135deg, #fff8f0 0%, #fdf0e8 100%) !important;
         padding-top: 0 !important;
@@ -47,381 +46,215 @@ def inject_css():
 
     /* ── TOP NAV ── */
     .topnav {
-        position: fixed;
-        top: 0; left: 0; right: 0;
-        z-index: 9999;
-        background: rgba(255,255,255,0.85);
+        position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+        background: rgba(255,255,255,0.92);
         backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
         border-bottom: 1px solid rgba(240,160,112,0.2);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 2rem;
-        height: 64px;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 2rem; height: 64px;
         box-shadow: 0 4px 24px rgba(240,160,112,0.12);
     }
-    .topnav-logo {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        text-decoration: none;
-    }
-    .topnav-logo-icon {
-        font-size: 1.8rem;
-        animation: float 3s ease-in-out infinite;
-    }
-    @keyframes float {
-        0%,100% { transform: translateY(0); }
-        50% { transform: translateY(-4px); }
-    }
+    .topnav-logo { display:flex; align-items:center; gap:0.6rem; }
+    .topnav-logo-icon { font-size:1.8rem; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
     .topnav-logo-text {
-        font-size: 1.3rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #f0a070, #e8856a);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        font-size:1.3rem; font-weight:800;
+        background: linear-gradient(135deg,#f0a070,#e8856a);
+        -webkit-background-clip:text; -webkit-text-fill-color:transparent;
     }
-    .topnav-links {
-        display: flex;
-        align-items: center;
-        gap: 0.3rem;
-    }
-    .topnav-link {
-        padding: 0.5rem 1.1rem;
-        border-radius: 12px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: #a0522d;
-        cursor: pointer;
-        transition: all 0.2s;
-        border: none;
-        background: transparent;
-        text-decoration: none;
-        white-space: nowrap;
-    }
-    .topnav-link:hover {
-        background: rgba(240,160,112,0.15);
-        color: #e8856a;
-    }
-    .topnav-link.active {
-        background: linear-gradient(135deg, #f0a070, #e8856a);
-        color: white !important;
-        box-shadow: 0 4px 12px rgba(240,160,112,0.4);
-    }
-    .topnav-right {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    .topnav-user {
-        background: rgba(240,160,112,0.1);
-        border: 1px solid rgba(240,160,112,0.3);
-        border-radius: 20px;
-        padding: 0.35rem 1rem;
-        font-size: 0.82rem;
-        color: #a0522d;
-        font-weight: 500;
-    }
-
-    /* Espace sous la topnav */
     .page-content { margin-top: 80px; }
 
-    /* ── HERO BANNER ── */
+    /* ── HERO ── */
     .hero {
-        background: linear-gradient(135deg, #f0a070 0%, #e8856a 50%, #d4694f 100%);
-        border-radius: 28px;
-        padding: 2.5rem 3rem;
-        margin-bottom: 2rem;
-        color: white;
-        box-shadow: 0 12px 40px rgba(240,160,112,0.35);
-        position: relative;
-        overflow: hidden;
+        background: linear-gradient(135deg,#f0a070 0%,#e8856a 50%,#d4694f 100%);
+        border-radius: 28px; padding: 2rem 2.5rem; margin-bottom: 1.5rem;
+        color: white; box-shadow: 0 12px 40px rgba(240,160,112,0.35);
+        position: relative; overflow: hidden;
     }
     .hero::before {
-        content: '';
-        position: absolute;
-        top: -50%; right: -10%;
-        width: 400px; height: 400px;
-        background: rgba(255,255,255,0.08);
-        border-radius: 50%;
+        content:''; position:absolute; top:-50%; right:-10%;
+        width:400px; height:400px; background:rgba(255,255,255,0.08); border-radius:50%;
     }
-    .hero::after {
-        content: '';
-        position: absolute;
-        bottom: -60%; right: 10%;
-        width: 300px; height: 300px;
-        background: rgba(255,255,255,0.05);
-        border-radius: 50%;
-    }
-    .hero h1 { margin: 0; font-size: 2.2rem; font-weight: 800; }
-    .hero p  { margin: 0.5rem 0 0; opacity: 0.9; font-size: 1rem; }
+    .hero h1 { margin:0; font-size:1.8rem; font-weight:800; }
+    .hero p  { margin:0.4rem 0 0; opacity:0.9; font-size:0.95rem; }
 
-    /* ── METRIC CARDS ── */
+    /* ── CARDS ── */
     .metric-card {
-        background: white;
-        border-radius: 20px;
-        padding: 1.5rem;
+        background: white; border-radius: 20px; padding: 1.5rem;
         border: 1px solid rgba(240,160,112,0.15);
         box-shadow: 0 4px 20px rgba(240,160,112,0.08);
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
+        transition: all 0.3s ease; position: relative; overflow: hidden;
     }
     .metric-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #f0a070, #e8856a);
-        border-radius: 20px 20px 0 0;
+        content:''; position:absolute; top:0; left:0; right:0; height:3px;
+        background: linear-gradient(90deg,#f0a070,#e8856a); border-radius:20px 20px 0 0;
     }
-    .metric-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 35px rgba(240,160,112,0.18);
-    }
+    .metric-card:hover { transform:translateY(-4px); box-shadow:0 12px 35px rgba(240,160,112,0.18); }
 
-    /* ── DATA CARDS ── */
-    .data-card {
-        background: white;
-        border-radius: 20px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
+    .kpi-card {
+        background: white; border-radius: 18px; padding: 1.3rem 1.5rem;
         border: 1px solid rgba(240,160,112,0.15);
         box-shadow: 0 4px 16px rgba(240,160,112,0.08);
-        transition: all 0.25s ease;
+        transition: all 0.3s ease; cursor: default;
     }
-    .data-card:hover {
-        transform: translateX(4px);
-        border-left: 4px solid #f0a070;
-        box-shadow: 0 8px 28px rgba(240,160,112,0.15);
+    .kpi-card:hover { transform:translateY(-3px); box-shadow:0 10px 30px rgba(240,160,112,0.16); }
+    .kpi-icon { font-size:2rem; margin-bottom:0.5rem; }
+    .kpi-value { font-size:1.8rem; font-weight:800; color:#a0522d; line-height:1; }
+    .kpi-label { font-size:0.78rem; color:#c8956c; font-weight:600;
+                 text-transform:uppercase; letter-spacing:0.05em; margin-top:0.3rem; }
+    .kpi-delta { font-size:0.8rem; margin-top:0.4rem; font-weight:500; }
+
+    /* ── PENNYLANE MODULES ── */
+    .module-card {
+        background: white; border-radius: 20px; padding: 1.5rem;
+        border: 1px solid rgba(240,160,112,0.15);
+        box-shadow: 0 4px 20px rgba(240,160,112,0.08);
+        margin-bottom: 1rem; transition: all 0.3s;
     }
+    .module-header {
+        display:flex; align-items:center; gap:0.8rem;
+        margin-bottom:1rem; padding-bottom:0.8rem;
+        border-bottom: 2px solid rgba(240,160,112,0.1);
+    }
+    .module-icon {
+        width:42px; height:42px; border-radius:12px;
+        background: linear-gradient(135deg,#f0a070,#e8856a);
+        display:flex; align-items:center; justify-content:center;
+        font-size:1.2rem; flex-shrink:0;
+    }
+    .module-title { font-size:1rem; font-weight:700; color:#a0522d; }
+    .module-sub   { font-size:0.78rem; color:#c8956c; }
+
+    /* ── FACTURE VIEWER ── */
+    .invoice-viewer {
+        background: white; border-radius: 20px; padding: 1.2rem;
+        border: 1px solid rgba(240,160,112,0.2);
+        box-shadow: 0 8px 30px rgba(240,160,112,0.12);
+        position: sticky; top: 90px;
+    }
+    .invoice-viewer-header {
+        display:flex; align-items:center; justify-content:space-between;
+        margin-bottom:1rem; padding-bottom:0.8rem;
+        border-bottom:2px solid rgba(240,160,112,0.1);
+    }
+    .invoice-viewer-title { font-weight:700; color:#a0522d; font-size:0.95rem; }
 
     /* ── BUTTONS ── */
     .stButton > button {
-        background: linear-gradient(135deg, #f0a070, #e8856a) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 14px !important;
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        padding: 0.6rem 1.2rem !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 4px 12px rgba(240,160,112,0.3) !important;
+        background: linear-gradient(135deg,#f0a070,#e8856a) !important;
+        color:white !important; border:none !important;
+        border-radius:14px !important; font-weight:600 !important;
+        font-size:0.9rem !important; padding:0.6rem 1.2rem !important;
+        transition:all 0.3s !important;
+        box-shadow:0 4px 12px rgba(240,160,112,0.3) !important;
     }
     .stButton > button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 8px 24px rgba(240,160,112,0.45) !important;
+        transform:translateY(-2px) !important;
+        box-shadow:0 8px 24px rgba(240,160,112,0.45) !important;
     }
 
     /* ── INPUTS ── */
-    .stTextInput > div > div > input,
-    .stNumberInput > div > div > input,
-    .stSelectbox > div > div,
-    .stTextArea > div > div > textarea {
-        border-radius: 14px !important;
-        border: 2px solid rgba(240,160,112,0.25) !important;
-        background: #fffaf7 !important;
-        transition: border 0.2s !important;
-    }
-    .stTextInput > div > div > input:focus,
-    .stTextArea > div > div > textarea:focus {
-        border-color: #f0a070 !important;
-        box-shadow: 0 0 0 3px rgba(240,160,112,0.15) !important;
-    }
-
-    /* ── EXPANDER ── */
-    .streamlit-expanderHeader {
-        background: white !important;
-        border-radius: 14px !important;
-        border: 2px solid rgba(240,160,112,0.2) !important;
-        font-weight: 600 !important;
-        color: #a0522d !important;
-    }
-
-    /* ── FILE UPLOADER ── */
-    [data-testid="stFileUploader"] {
-        border: 2px dashed rgba(240,160,112,0.4) !important;
-        border-radius: 20px !important;
-        background: #fffaf7 !important;
-        padding: 1rem !important;
-    }
-
-    /* ── FLOATING CHAT ── */
-    .chat-widget {
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
-        z-index: 9998;
-    }
-    .chat-bubble {
-        width: 60px; height: 60px;
-        background: linear-gradient(135deg, #f0a070, #e8856a);
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.8rem;
-        cursor: pointer;
-        box-shadow: 0 8px 25px rgba(240,160,112,0.5);
-        transition: all 0.3s;
-        animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-        0%,100% { box-shadow: 0 8px 25px rgba(240,160,112,0.5); }
-        50% { box-shadow: 0 8px 40px rgba(240,160,112,0.8); }
-    }
-    .chat-bubble:hover { transform: scale(1.1); }
-
-    /* ── BADGE STATUT ── */
-    .badge {
-        display: inline-block;
-        padding: 0.25rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.78rem;
-        font-weight: 600;
-    }
-    .badge-green { background: #f0fff4; color: #276749; border: 1px solid #9ae6b4; }
-    .badge-orange { background: #fff8f0; color: #c05621; border: 1px solid #f0a070; }
-    .badge-red { background: #fff5f5; color: #c53030; border: 1px solid #fc8181; }
-
-    /* ── SCROLLBAR ── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #fff8f0; }
-    ::-webkit-scrollbar-thumb { background: #f0a070; border-radius: 3px; }
-
-    /* ── DATAFRAME ── */
-    [data-testid="stDataFrame"] {
-        border-radius: 16px !important;
-        overflow: hidden !important;
-        border: 1px solid rgba(240,160,112,0.2) !important;
+    .stTextInput>div>div>input, .stNumberInput>div>div>input,
+    .stSelectbox>div>div, .stTextArea>div>div>textarea {
+        border-radius:14px !important;
+        border:2px solid rgba(240,160,112,0.25) !important;
+        background:#fffaf7 !important;
     }
 
     /* ── TABS ── */
     .stTabs [data-baseweb="tab-list"] {
-        background: white;
-        border-radius: 14px;
-        padding: 0.3rem;
-        border: 1px solid rgba(240,160,112,0.2);
-        gap: 0.2rem;
+        background:white; border-radius:14px; padding:0.3rem;
+        border:1px solid rgba(240,160,112,0.2); gap:0.2rem;
     }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 10px !important;
-        font-weight: 500 !important;
-        color: #a0522d !important;
-    }
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #f0a070, #e8856a) !important;
-        color: white !important;
-    }
-
-    /* ── PROGRESS ── */
-    .stProgress > div > div {
-        background: linear-gradient(90deg, #f0a070, #e8856a) !important;
-        border-radius: 10px !important;
-    }
+    .stTabs [data-baseweb="tab"] { border-radius:10px !important; font-weight:500 !important; color:#a0522d !important; }
+    .stTabs [aria-selected="true"] { background:linear-gradient(135deg,#f0a070,#e8856a) !important; color:white !important; }
 
     /* ── ALERTS ── */
-    .stSuccess { border-radius: 14px !important; border-left: 4px solid #68d391 !important; }
-    .stError   { border-radius: 14px !important; border-left: 4px solid #fc8181 !important; }
-    .stWarning { border-radius: 14px !important; border-left: 4px solid #f0a070 !important; }
+    .stSuccess { border-radius:14px !important; border-left:4px solid #68d391 !important; }
+    .stError   { border-radius:14px !important; border-left:4px solid #fc8181 !important; }
+    .stWarning { border-radius:14px !important; border-left:4px solid #f0a070 !important; }
 
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-track { background:#fff8f0; }
+    ::-webkit-scrollbar-thumb { background:#f0a070; border-radius:3px; }
+
+    /* ── NAV SECONDARY BUTTONS ── */
+    div[data-testid="stHorizontalBlock"] .stButton>button[kind="secondary"] {
+        background:transparent !important; color:#a0522d !important;
+        box-shadow:none !important; border:none !important; font-weight:500 !important;
+    }
+    div[data-testid="stHorizontalBlock"] .stButton>button[kind="secondary"]:hover {
+        background:rgba(240,160,112,0.12) !important; transform:none !important;
+    }
+    div[data-testid="stHorizontalBlock"] .stButton>button[kind="primary"] {
+        background:linear-gradient(135deg,#f0a070,#e8856a) !important;
+        border-radius:20px !important; font-weight:600 !important;
+        box-shadow:0 4px 12px rgba(240,160,112,0.4) !important;
+    }
+
+    /* ── DATAFRAME ── */
+    [data-testid="stDataFrame"] { border-radius:16px !important; overflow:hidden !important; border:1px solid rgba(240,160,112,0.2) !important; }
+
+    /* ── PROGRESS ── */
+    .stProgress>div>div { background:linear-gradient(90deg,#f0a070,#e8856a) !important; border-radius:10px !important; }
     </style>
     """, unsafe_allow_html=True)
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# TOP NAV
+# ═══════════════════════════════════════════════════════════════════════════════
 def render_topnav(current_page):
-    """Barre de navigation fixe en haut"""
-    pages = ["🏠 Dashboard", "📄 Factures", "🧾 Notes de frais", "🤖 Assistant IA"]
     user_email = st.session_state.get("user_email", "")
-
-    # On génère les boutons via Streamlit (invisible) pour garder la logique de navigation
     st.markdown(f"""
     <div class="topnav">
         <div class="topnav-logo">
             <span class="topnav-logo-icon">🐱</span>
             <span class="topnav-logo-text">FactureCat</span>
         </div>
-        <div class="topnav-links" id="topnav-links">
+        <div style="color:#d4a882;font-size:0.8rem;">
+            Gestion comptable intelligente · Gemini 2.5 Flash
         </div>
-        <div class="topnav-right">
-            <div class="topnav-user">👤 {user_email}</div>
+        <div style="background:rgba(240,160,112,0.1);border:1px solid rgba(240,160,112,0.3);
+             border-radius:20px;padding:0.35rem 1rem;font-size:0.82rem;color:#a0522d;font-weight:500;">
+            👤 {user_email}
         </div>
     </div>
     <div class="page-content"></div>
     """, unsafe_allow_html=True)
 
-    # Navigation via colonnes cachées (astuce Streamlit)
-    cols = st.columns([2, 1, 1, 1, 1, 1, 2])
-    nav_map = {
-        1: "🏠 Dashboard",
-        2: "📄 Factures",
-        3: "🧾 Notes de frais",
-        4: "🤖 Assistant IA",
-        5: "logout"
+    cols = st.columns([0.5, 1, 1, 1, 1, 1, 1, 0.5])
+    pages_map = {
+        1: ("🏠 Dashboard", "🏠 Dashboard"),
+        2: ("📄 Factures",  "📄 Factures"),
+        3: ("🧾 Notes",     "🧾 Notes de frais"),
+        4: ("📊 Compta",    "📊 Comptabilité"),
+        5: ("🤖 IA",        "🤖 Assistant IA"),
+        6: ("🚪 Sortir",    "logout"),
     }
-    with cols[1]:
-        if st.button("🏠 Dashboard", key="nav_dash",
-                     type="primary" if current_page == "🏠 Dashboard" else "secondary",
-                     use_container_width=True):
-            st.session_state["page"] = "🏠 Dashboard"
-            st.rerun()
-    with cols[2]:
-        if st.button("📄 Factures", key="nav_fact",
-                     type="primary" if current_page == "📄 Factures" else "secondary",
-                     use_container_width=True):
-            st.session_state["page"] = "📄 Factures"
-            st.rerun()
-    with cols[3]:
-        if st.button("🧾 Notes", key="nav_notes",
-                     type="primary" if current_page == "🧾 Notes de frais" else "secondary",
-                     use_container_width=True):
-            st.session_state["page"] = "🧾 Notes de frais"
-            st.rerun()
-    with cols[4]:
-        if st.button("🤖 IA", key="nav_ia",
-                     type="primary" if current_page == "🤖 Assistant IA" else "secondary",
-                     use_container_width=True):
-            st.session_state["page"] = "🤖 Assistant IA"
-            st.rerun()
-    with cols[5]:
-        if st.button("🚪", key="nav_logout", use_container_width=True):
-            st.session_state["authenticated"] = False
-            st.session_state["user_email"] = ""
-            try:
-                get_supabase().auth.sign_out()
-            except:
-                pass
-            st.rerun()
+    for col_idx, (label, page_key) in pages_map.items():
+        with cols[col_idx]:
+            is_active = (current_page == page_key)
+            if st.button(label, key=f"nav_{col_idx}",
+                         type="primary" if is_active else "secondary",
+                         use_container_width=True):
+                if page_key == "logout":
+                    st.session_state["authenticated"] = False
+                    st.session_state["user_email"] = ""
+                    try: get_supabase().auth.sign_out()
+                    except: pass
+                else:
+                    st.session_state["page"] = page_key
+                st.rerun()
 
-    # Style pour les boutons de nav (secondaire = transparent)
-    st.markdown("""
-    <style>
-    /* Boutons secondaires nav = style pill transparent */
-    [data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"] {
-        background: transparent !important;
-        color: #a0522d !important;
-        box-shadow: none !important;
-        border: none !important;
-        font-weight: 500 !important;
-    }
-    [data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"]:hover {
-        background: rgba(240,160,112,0.12) !important;
-        transform: none !important;
-    }
-    /* Bouton actif nav */
-    [data-testid="stHorizontalBlock"] .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #f0a070, #e8856a) !important;
-        border-radius: 20px !important;
-        font-weight: 600 !important;
-        box-shadow: 0 4px 12px rgba(240,160,112,0.4) !important;
-    }
-    /* Bouton logout */
-    [data-testid="stHorizontalBlock"]:last-child .stButton > button {
-        background: rgba(240,100,80,0.1) !important;
-        color: #c05621 !important;
-        box-shadow: none !important;
-        border-radius: 20px !important;
-    }
-    </style>
+
+def hero(icon, title, subtitle):
+    st.markdown(f"""
+    <div class="hero">
+        <h1>{icon} {title}</h1>
+        <p>{subtitle}</p>
+    </div>
     """, unsafe_allow_html=True)
 
 
@@ -433,8 +266,7 @@ def pdf_to_images(pdf_bytes):
     return [Image.open(io.BytesIO(p.get_pixmap(dpi=150).tobytes("png"))) for p in doc]
 
 def extraire_facture(model, images):
-    prompt = """
-Analyse cette facture et extrais les informations en JSON strict :
+    prompt = """Analyse cette facture et extrais en JSON strict :
 {
   "fournisseur": "nom",
   "numero": "numéro",
@@ -445,8 +277,7 @@ Analyse cette facture et extrais les informations en JSON strict :
   "categorie": "Informatique|Transport|Repas|Fournitures|Services|Autres",
   "statut": "À payer"
 }
-Réponds UNIQUEMENT avec le JSON, sans markdown.
-"""
+Réponds UNIQUEMENT avec le JSON, sans markdown."""
     try:
         r = model.generate_content([prompt] + images)
         text = r.text.strip().replace("```json","").replace("```","").strip()
@@ -455,718 +286,1214 @@ Réponds UNIQUEMENT avec le JSON, sans markdown.
         return {"fournisseur":"Non détecté","numero":"—","date":str(datetime.now().date()),
                 "montant_ht":0,"tva":0,"montant_ttc":0,"categorie":"Autres","statut":"À payer"}
 
-def hero(icon, title, subtitle):
-    st.markdown(f"""
-    <div class="hero">
-        <h1>{icon} {title}</h1>
-        <p>{subtitle}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-def metric_card(label, value, delta="", icon=""):
-    st.markdown(f"""
-    <div class="metric-card">
-        <p style="color:#c8956c;font-size:0.8rem;font-weight:700;
-           text-transform:uppercase;letter-spacing:0.05em;margin:0 0 0.4rem;">
-           {icon} {label}
-        </p>
-        <p style="color:#a0522d;font-size:2rem;font-weight:800;margin:0;line-height:1;">
-           {value}
-        </p>
-        <p style="color:#d4a882;font-size:0.8rem;margin:0.5rem 0 0;">{delta}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# FLOATING CHAT
-# ═══════════════════════════════════════════════════════════════════════════════
-def show_floating_chat():
-    if "float_chat_open" not in st.session_state:
-        st.session_state["float_chat_open"] = False
-    if "float_messages" not in st.session_state:
-        st.session_state["float_messages"] = []
-
-    col_spacer, col_chat = st.columns([5, 1])
-    with col_chat:
-        if st.button("🐱👓", key="float_toggle", help="Assistant FactureCat"):
-            st.session_state["float_chat_open"] = not st.session_state["float_chat_open"]
-
-    if st.session_state["float_chat_open"]:
-        with st.container():
-            st.markdown("""
-            <div style="position:fixed;bottom:5rem;right:2rem;width:360px;
-                 background:white;border-radius:24px;
-                 box-shadow:0 20px 60px rgba(240,160,112,0.35);
-                 border:1px solid rgba(240,160,112,0.2);
-                 z-index:9997;overflow:hidden;">
-                <div style="background:linear-gradient(135deg,#f0a070,#e8856a);
-                     padding:1rem 1.2rem;display:flex;align-items:center;gap:0.7rem;">
-                    <span style="font-size:1.5rem;">🐱👓</span>
-                    <div>
-                        <div style="color:white;font-weight:700;font-size:0.95rem;">
-                            Assistant FactureCat
-                        </div>
-                        <div style="color:rgba(255,255,255,0.8);font-size:0.75rem;">
-                            ● En ligne
-                        </div>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            st.markdown("<div style='height:300px;overflow-y:auto;padding:1rem;'>",
-                        unsafe_allow_html=True)
-            for msg in st.session_state["float_messages"][-6:]:
-                align = "flex-end" if msg["role"] == "user" else "flex-start"
-                bg = "#f0a070" if msg["role"] == "user" else "#fff8f0"
-                color = "white" if msg["role"] == "user" else "#a0522d"
-                icon = "👤" if msg["role"] == "user" else "🐱"
-                st.markdown(f"""
-                <div style="display:flex;justify-content:{align};margin:0.4rem 0;">
-                    <div style="background:{bg};color:{color};padding:0.6rem 1rem;
-                         border-radius:16px;max-width:85%;font-size:0.85rem;
-                         box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-                        <span style="opacity:0.6;font-size:0.7rem;">{icon}</span>
-                        <br>{msg['content']}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            user_q = st.chat_input("Posez votre question 🐾", key="float_input")
-            if user_q:
-                st.session_state["float_messages"].append(
-                    {"role": "user", "content": user_q}
-                )
-                model = configure_gemini()
-                if model:
-                    try:
-                        supabase = get_supabase()
-                        uid = st.session_state.get("user_id","")
-                        factures = supabase.table("factures").select("*").eq("user_id",uid).execute().data or []
-                        notes = supabase.table("notes_frais").select("*").eq("user_id",uid).execute().data or []
-                    except:
-                        factures = st.session_state.get("resultats",[])
-                        notes = st.session_state.get("notes_frais",[])
-
-                    context = f"""Tu es l'assistant FactureCat 🐱, expert-comptable virtuel sympa.
-Factures : {json.dumps(factures, ensure_ascii=False)}
-Notes de frais : {json.dumps(notes, ensure_ascii=False)}
-Réponds en français, clair et concis. Question : {user_q}"""
-                    try:
-                        resp = model.generate_content(context)
-                        answer = resp.text
-                    except Exception as e:
-                        answer = f"❌ {e}"
-                else:
-                    answer = "❌ Clé API manquante"
-
-                st.session_state["float_messages"].append(
-                    {"role": "assistant", "content": answer}
-                )
-                st.rerun()
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# LOGIN
-# ═══════════════════════════════════════════════════════════════════════════════
-def check_password():
-    if "authenticated" not in st.session_state:
-        st.session_state["authenticated"] = False
-        st.session_state["user_email"] = ""
-        st.session_state["user_id"] = ""
-        try:
-            supabase = get_supabase()
-            session = supabase.auth.get_session()
-            if session and session.user:
-                st.session_state["authenticated"] = True
-                st.session_state["user_email"] = session.user.email
-                st.session_state["user_id"] = session.user.id
-        except:
-            pass
-
-    if st.session_state["authenticated"]:
-        return True
-
-    # Page de login moderne
-    st.markdown("""
-    <style>
-    .main { background: linear-gradient(135deg, #fff8f0, #fdf0e8) !important; }
-    [data-testid="stSidebar"] { display:none !important; }
-    </style>
-    """, unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns([1, 1.2, 1])
-    with col2:
-        st.markdown("""
-        <div style="text-align:center;padding:3rem 0 2rem;">
-            <div style="font-size:5rem;animation:float 3s ease-in-out infinite;">🐱</div>
-            <h1 style="background:linear-gradient(135deg,#f0a070,#e8856a);
-               -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-               font-size:2.5rem;font-weight:800;margin:0.5rem 0 0;">
-               FactureCat
-            </h1>
-            <p style="color:#c8956c;margin:0.3rem 0 2rem;font-size:1rem;">
-               Gestion comptable intelligente 🐾
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        with st.container():
-            st.markdown("""
-            <div style="background:white;border-radius:28px;padding:2.5rem;
-                 box-shadow:0 20px 60px rgba(240,160,112,0.2);
-                 border:1px solid rgba(240,160,112,0.15);">
-            """, unsafe_allow_html=True)
-
-            with st.form("login_form"):
-                st.markdown("<p style='color:#a0522d;font-weight:700;font-size:1.1rem;margin:0 0 1.5rem;'>Connexion</p>", unsafe_allow_html=True)
-                email    = st.text_input("📧 Email", placeholder="votre@email.com")
-                password = st.text_input("🔑 Mot de passe", type="password")
-                st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-                submit = st.form_submit_button("🚀 Se connecter", use_container_width=True)
-
-                if submit:
-                    try:
-                        supabase = get_supabase()
-                        res = supabase.auth.sign_in_with_password(
-                            {"email": email, "password": password}
-                        )
-                        if res.user:
-                            st.session_state["authenticated"] = True
-                            st.session_state["user_email"]    = res.user.email
-                            st.session_state["user_id"]       = res.user.id
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ {e}")
-
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    return False
+def get_data(table):
+    try:
+        supabase = get_supabase()
+        uid = st.session_state.get("user_id","")
+        return supabase.table(table).select("*").eq("user_id",uid).execute().data or []
+    except:
+        key = "resultats" if table == "factures" else "notes_frais"
+        return st.session_state.get(key, [])
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════════
 def show_dashboard():
-    hero("🏠", "Dashboard", "Vue d'ensemble de votre comptabilité 🐾")
+    hero("🏠", "Tableau de Bord", f"Bonjour 👋 · {datetime.now().strftime('%d %B %Y')}")
 
-    try:
-        supabase = get_supabase()
-        uid      = st.session_state.get("user_id","")
-        factures = supabase.table("factures").select("*").eq("user_id",uid).execute().data or []
-        notes    = supabase.table("notes_frais").select("*").eq("user_id",uid).execute().data or []
-    except:
-        factures = st.session_state.get("resultats",[])
-        notes    = st.session_state.get("notes_frais",[])
+    factures = get_data("factures")
+    notes    = get_data("notes_frais")
 
-    total_f_ttc = sum(float(r.get("montant_ttc",0)) for r in factures)
-    total_f_tva = sum(float(r.get("tva",0)) for r in factures)
-    total_n_ttc = sum(float(n.get("montant_ttc",0)) for n in notes)
-    total_n_ht  = sum(float(n.get("montant_ht",0)) for n in notes)
+    total_ttc   = sum(float(f.get("montant_ttc",0)) for f in factures)
+    total_ht    = sum(float(f.get("montant_ht",0))  for f in factures)
+    total_tva   = sum(float(f.get("tva",0))          for f in factures)
+    a_payer     = sum(float(f.get("montant_ttc",0)) for f in factures if "payer" in str(f.get("statut","")).lower() and "payée" not in str(f.get("statut","")).lower())
+    total_notes = sum(float(n.get("montant_ttc",0)) for n in notes)
+    payees      = sum(1 for f in factures if "Payée" in str(f.get("statut","")))
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: metric_card("Factures", str(len(factures)), f"TTC : {total_f_ttc:.2f} €", "📄")
-    with c2: metric_card("CA Factures", f"{total_f_ttc:.2f} €", f"TVA : {total_f_tva:.2f} €", "💰")
-    with c3: metric_card("Notes de frais", str(len(notes)), f"HT : {total_n_ht:.2f} €", "🧾")
-    with c4: metric_card("Total dépenses", f"{total_f_ttc+total_n_ttc:.2f} €", "TTC all in", "💸")
+    # KPIs
+    k1, k2, k3, k4, k5 = st.columns(5)
+    kpis = [
+        (k1, "💰", f"{total_ttc:,.0f} €", "Chiffre d'affaires TTC", "#68d391"),
+        (k2, "📋", f"{len(factures)}", "Factures totales", "#63b3ed"),
+        (k3, "⏳", f"{a_payer:,.0f} €", "À encaisser", "#f6ad55"),
+        (k4, "🧾", f"{total_notes:,.0f} €", "Notes de frais", "#fc8181"),
+        (k5, "📊", f"{total_tva:,.0f} €", "TVA collectée", "#b794f4"),
+    ]
+    for col, icon, val, label, color in kpis:
+        with col:
+            st.markdown(f"""
+            <div class="kpi-card">
+                <div class="kpi-icon">{icon}</div>
+                <div class="kpi-value" style="color:{color};">{val}</div>
+                <div class="kpi-label">{label}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
 
-    col_l, col_r = st.columns(2)
-    with col_l:
-        st.markdown("""
-        <div style="background:white;border-radius:20px;padding:1.5rem;
-             border:1px solid rgba(240,160,112,0.15);
-             box-shadow:0 4px 20px rgba(240,160,112,0.08);">
-            <p style="color:#a0522d;font-weight:700;font-size:1rem;margin:0 0 1rem;">
-                📄 Dernières factures
-            </p>
-        """, unsafe_allow_html=True)
-
+    # Charts
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
         if factures:
-            for f in factures[-4:]:
-                statut = f.get("statut","À payer")
-                badge_cls = "badge-green" if "Payée" in statut else (
-                    "badge-red" if "retard" in statut else "badge-orange")
-                st.markdown(f"""
-                <div style="display:flex;justify-content:space-between;
-                     align-items:center;padding:0.7rem 0;
-                     border-bottom:1px solid rgba(240,160,112,0.1);">
-                    <div>
-                        <div style="color:#a0522d;font-weight:600;font-size:0.9rem;">
-                            {f.get('fournisseur','—')}
-                        </div>
-                        <div style="color:#c8956c;font-size:0.78rem;">{f.get('date','—')}</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="color:#a0522d;font-weight:700;">
-                            {float(f.get('montant_ttc',0)):.2f} €
-                        </div>
-                        <span class="badge {badge_cls}">{statut}</span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+            df_f = pd.DataFrame(factures)
+            if "categorie" in df_f.columns:
+                grp = df_f.groupby("categorie")["montant_ttc"].sum().reset_index()
+                grp.columns = ["Catégorie","Montant"]
+                fig = px.pie(grp, values="Montant", names="Catégorie",
+                             color_discrete_sequence=["#f0a070","#e8856a","#d4694f",
+                                                      "#c8956c","#f5c5a3","#fbe0cc"],
+                             hole=0.55)
+                fig.update_layout(
+                    title="Répartition par catégorie",
+                    showlegend=True, height=320,
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(family="Inter", color="#a0522d"),
+                    margin=dict(t=40,b=20,l=20,r=20)
+                )
+                fig.update_traces(textposition="inside", textinfo="percent+label")
+                st.plotly_chart(fig, use_container_width=True)
         else:
-            st.markdown("<p style='color:#c8956c;text-align:center;'>Aucune facture 🐱</p>",
-                        unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("""<div class="kpi-card" style="text-align:center;padding:3rem;">
+            <div style="font-size:3rem;">📊</div>
+            <p style="color:#c8956c;">Aucune donnée</p></div>""", unsafe_allow_html=True)
 
-    with col_r:
-        st.markdown("""
-        <div style="background:white;border-radius:20px;padding:1.5rem;
-             border:1px solid rgba(240,160,112,0.15);
-             box-shadow:0 4px 20px rgba(240,160,112,0.08);">
-            <p style="color:#a0522d;font-weight:700;font-size:1rem;margin:0 0 1rem;">
-                🧾 Dernières notes de frais
-            </p>
-        """, unsafe_allow_html=True)
-
-        if notes:
-            for n in notes[-4:]:
-                st.markdown(f"""
-                <div style="display:flex;justify-content:space-between;
-                     align-items:center;padding:0.7rem 0;
-                     border-bottom:1px solid rgba(240,160,112,0.1);">
-                    <div>
-                        <div style="color:#a0522d;font-weight:600;font-size:0.9rem;">
-                            {n.get('description','—')[:30]}
-                        </div>
-                        <div style="color:#c8956c;font-size:0.78rem;">
-                            {n.get('categorie','—')} · {n.get('date','—')}
-                        </div>
-                    </div>
-                    <div style="color:#a0522d;font-weight:700;">
-                        {float(n.get('montant_ttc',0)):.2f} €
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+    with col_g2:
+        if factures:
+            df_f = pd.DataFrame(factures)
+            if "date" in df_f.columns:
+                df_f["date"] = pd.to_datetime(df_f["date"], errors="coerce")
+                df_f["mois"] = df_f["date"].dt.strftime("%Y-%m")
+                monthly = df_f.groupby("mois")["montant_ttc"].sum().reset_index()
+                monthly.columns = ["Mois","Montant"]
+                fig2 = px.bar(monthly, x="Mois", y="Montant",
+                              color_discrete_sequence=["#f0a070"],
+                              title="Évolution mensuelle (TTC)")
+                fig2.update_layout(
+                    height=320, plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(family="Inter", color="#a0522d"),
+                    margin=dict(t=40,b=20,l=20,r=20),
+                    xaxis=dict(showgrid=False),
+                    yaxis=dict(showgrid=True, gridcolor="rgba(240,160,112,0.1)")
+                )
+                fig2.update_traces(marker_line_width=0, marker_color="rgba(240,160,112,0.85)")
+                st.plotly_chart(fig2, use_container_width=True)
         else:
-            st.markdown("<p style='color:#c8956c;text-align:center;'>Aucune note 🐱</p>",
-                        unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("""<div class="kpi-card" style="text-align:center;padding:3rem;">
+            <div style="font-size:3rem;">📈</div>
+            <p style="color:#c8956c;">Aucune donnée</p></div>""", unsafe_allow_html=True)
 
-    # Répartition par catégorie
+    # Dernières factures
+    st.markdown("""<div class="module-card">
+    <div class="module-header">
+        <div class="module-icon">📄</div>
+        <div><div class="module-title">Dernières factures</div>
+             <div class="module-sub">5 plus récentes</div></div>
+    </div>""", unsafe_allow_html=True)
     if factures:
-        st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
-        st.markdown("""
-        <div style="background:white;border-radius:20px;padding:1.5rem;
-             border:1px solid rgba(240,160,112,0.15);
-             box-shadow:0 4px 20px rgba(240,160,112,0.08);">
-            <p style="color:#a0522d;font-weight:700;font-size:1rem;margin:0 0 1rem;">
-                📊 Répartition par catégorie
-            </p>
-        """, unsafe_allow_html=True)
-        df_cat = pd.DataFrame(factures).groupby("categorie")["montant_ttc"].sum().reset_index()
-        st.bar_chart(df_cat.set_index("categorie"), color="#f0a070", height=250)
-        st.markdown("</div>", unsafe_allow_html=True)
+        df_recent = pd.DataFrame(factures[-5:][::-1])
+        cols_show = [c for c in ["fournisseur","date","montant_ttc","statut","categorie"] if c in df_recent.columns]
+        st.dataframe(df_recent[cols_show], use_container_width=True, hide_index=True)
+    else:
+        st.markdown("<p style='color:#c8956c;text-align:center;padding:2rem;'>Aucune facture</p>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# FACTURES
+# COMPTABILITÉ (style Pennylane)
+# ═══════════════════════════════════════════════════════════════════════════════
+def show_comptabilite():
+    hero("📊", "Comptabilité", "Vision complète de vos finances · Style Pennylane 💼")
+
+    factures = get_data("factures")
+    notes    = get_data("notes_frais")
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📈 Trésorerie", "🏦 Grand Livre", "📋 Bilan simplifié",
+        "💸 TVA", "⚠️ Alertes"
+    ])
+
+    # ── Trésorerie ──────────────────────────────────────────────────────────
+    with tab1:
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+
+        total_recettes  = sum(float(f.get("montant_ttc",0)) for f in factures)
+        total_depenses  = sum(float(n.get("montant_ttc",0)) for n in notes)
+        solde           = total_recettes - total_depenses
+        payees_ttc      = sum(float(f.get("montant_ttc",0)) for f in factures if "Payée" in str(f.get("statut","")))
+        en_attente      = total_recettes - payees_ttc
+
+        c1, c2, c3, c4 = st.columns(4)
+        kpis_tres = [
+            (c1, "💹", f"{total_recettes:,.2f} €", "Recettes totales", "#68d391"),
+            (c2, "💸", f"{total_depenses:,.2f} €", "Dépenses totales", "#fc8181"),
+            (c3, "💰", f"{solde:,.2f} €",          "Solde net",
+             "#68d391" if solde >= 0 else "#fc8181"),
+            (c4, "⏳", f"{en_attente:,.2f} €",     "En attente", "#f6ad55"),
+        ]
+        for col, icon, val, label, color in kpis_tres:
+            with col:
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <div class="kpi-icon">{icon}</div>
+                    <div class="kpi-value" style="color:{color};">{val}</div>
+                    <div class="kpi-label">{label}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
+
+        if factures or notes:
+            # Courbe trésorerie
+            rows = []
+            for f in factures:
+                rows.append({"date": f.get("date",""), "montant": float(f.get("montant_ttc",0)),
+                             "type": "Recette", "label": f.get("fournisseur","")})
+            for n in notes:
+                rows.append({"date": n.get("date",""), "montant": -float(n.get("montant_ttc",0)),
+                             "type": "Dépense", "label": n.get("description","")})
+            if rows:
+                df_tres = pd.DataFrame(rows)
+                df_tres["date"] = pd.to_datetime(df_tres["date"], errors="coerce")
+                df_tres = df_tres.dropna(subset=["date"]).sort_values("date")
+                df_tres["cumul"] = df_tres["montant"].cumsum()
+
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=df_tres["date"], y=df_tres["cumul"],
+                    fill="tozeroy",
+                    line=dict(color="#f0a070", width=3),
+                    fillcolor="rgba(240,160,112,0.15)",
+                    name="Trésorerie cumulée",
+                    hovertemplate="<b>%{x|%d/%m/%Y}</b><br>%{y:,.2f} €<extra></extra>"
+                ))
+                fig.update_layout(
+                    title="Évolution de la trésorerie", height=350,
+                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(family="Inter", color="#a0522d"),
+                    margin=dict(t=40,b=20,l=20,r=20),
+                    xaxis=dict(showgrid=False, showline=True, linecolor="rgba(240,160,112,0.3)"),
+                    yaxis=dict(showgrid=True, gridcolor="rgba(240,160,112,0.1)",
+                               ticksuffix=" €")
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+    # ── Grand Livre ──────────────────────────────────────────────────────────
+    with tab2:
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+
+        # Construction du grand livre
+        ecritures = []
+        for f in factures:
+            ecritures.append({
+                "Date": f.get("date","—"),
+                "Compte": "411 - Clients",
+                "Libellé": f.get("fournisseur","—"),
+                "Débit": float(f.get("montant_ttc",0)),
+                "Crédit": 0,
+                "Catégorie": f.get("categorie","—"),
+                "Statut": f.get("statut","—")
+            })
+            ecritures.append({
+                "Date": f.get("date","—"),
+                "Compte": "445660 - TVA collectée",
+                "Libellé": f"TVA · {f.get('fournisseur','—')}",
+                "Débit": 0,
+                "Crédit": float(f.get("tva",0)),
+                "Catégorie": f.get("categorie","—"),
+                "Statut": "—"
+            })
+        for n in notes:
+            ecritures.append({
+                "Date": n.get("date","—"),
+                "Compte": "625 - Déplacements",
+                "Libellé": n.get("description","—"),
+                "Débit": 0,
+                "Crédit": float(n.get("montant_ttc",0)),
+                "Catégorie": n.get("categorie","—"),
+                "Statut": "Validée"
+            })
+
+        if ecritures:
+            df_gl = pd.DataFrame(ecritures)
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                search_gl = st.text_input("🔍 Rechercher", key="gl_search")
+            with col_f2:
+                compte_f = st.selectbox("Compte", ["Tous"] + list(df_gl["Compte"].unique()), key="gl_compte")
+
+            filtered_gl = df_gl.copy()
+            if search_gl:
+                filtered_gl = filtered_gl[filtered_gl["Libellé"].str.contains(search_gl, case=False, na=False)]
+            if compte_f != "Tous":
+                filtered_gl = filtered_gl[filtered_gl["Compte"] == compte_f]
+
+            total_debit  = filtered_gl["Débit"].sum()
+            total_credit = filtered_gl["Crédit"].sum()
+            balance      = total_debit - total_credit
+
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.markdown(f"""<div class="kpi-card" style="padding:1rem;">
+                <div class="kpi-icon" style="font-size:1.3rem;">📤</div>
+                <div class="kpi-value" style="color:#68d391;font-size:1.3rem;">{total_debit:,.2f} €</div>
+                <div class="kpi-label">Total Débit</div></div>""", unsafe_allow_html=True)
+            with c2:
+                st.markdown(f"""<div class="kpi-card" style="padding:1rem;">
+                <div class="kpi-icon" style="font-size:1.3rem;">📥</div>
+                <div class="kpi-value" style="color:#fc8181;font-size:1.3rem;">{total_credit:,.2f} €</div>
+                <div class="kpi-label">Total Crédit</div></div>""", unsafe_allow_html=True)
+            with c3:
+                color_bal = "#68d391" if balance >= 0 else "#fc8181"
+                st.markdown(f"""<div class="kpi-card" style="padding:1rem;">
+                <div class="kpi-icon" style="font-size:1.3rem;">⚖️</div>
+                <div class="kpi-value" style="color:{color_bal};font-size:1.3rem;">{balance:,.2f} €</div>
+                <div class="kpi-label">Balance</div></div>""", unsafe_allow_html=True)
+
+            st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+            st.dataframe(filtered_gl, use_container_width=True, hide_index=True, height=400)
+
+            buf = io.BytesIO()
+            with pd.ExcelWriter(buf, engine="openpyxl") as w:
+                filtered_gl.to_excel(w, index=False, sheet_name="Grand Livre")
+            st.download_button("📊 Exporter Grand Livre",
+                buf.getvalue(), "grand_livre.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True, key="dl_gl")
+        else:
+            st.info("Aucune écriture comptable disponible")
+
+    # ── Bilan simplifié ──────────────────────────────────────────────────────
+    with tab3:
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+
+        total_actif   = sum(float(f.get("montant_ttc",0)) for f in factures)
+        total_passif  = sum(float(n.get("montant_ttc",0)) for n in notes)
+        total_tva_col = sum(float(f.get("tva",0)) for f in factures)
+        capitaux      = total_actif - total_passif
+
+        col_a, col_p = st.columns(2)
+        with col_a:
+            st.markdown("""
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-icon">📤</div>
+                    <div><div class="module-title">ACTIF</div>
+                         <div class="module-sub">Ce que vous possédez</div></div>
+                </div>
+            """, unsafe_allow_html=True)
+            actif_items = [
+                ("Créances clients (TTC)", total_actif),
+                ("TVA déductible", total_tva_col * 0.3),
+            ]
+            for label, val in actif_items:
+                st.markdown(f"""
+                <div style="display:flex;justify-content:space-between;padding:0.7rem 0;
+                     border-bottom:1px solid rgba(240,160,112,0.1);">
+                    <span style="color:#a0522d;">{label}</span>
+                    <b style="color:#68d391;">{val:,.2f} €</b>
+                </div>
+                """, unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style="display:flex;justify-content:space-between;padding:0.8rem 0;
+                 background:rgba(240,160,112,0.08);border-radius:10px;margin-top:0.5rem;padding:0.8rem;">
+                <b style="color:#a0522d;">TOTAL ACTIF</b>
+                <b style="color:#68d391;font-size:1.1rem;">{total_actif:,.2f} €</b>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with col_p:
+            st.markdown("""
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-icon">📥</div>
+                    <div><div class="module-title">PASSIF</div>
+                         <div class="module-sub">Ce que vous devez</div></div>
+                </div>
+            """, unsafe_allow_html=True)
+            passif_items = [
+                ("Dettes fournisseurs", total_passif),
+                ("TVA collectée", total_tva_col),
+                ("Capitaux propres", max(0, capitaux)),
+            ]
+            for label, val in passif_items:
+                st.markdown(f"""
+                <div style="display:flex;justify-content:space-between;padding:0.7rem 0;
+                     border-bottom:1px solid rgba(240,160,112,0.1);">
+                    <span style="color:#a0522d;">{label}</span>
+                    <b style="color:#fc8181;">{val:,.2f} €</b>
+                </div>
+                """, unsafe_allow_html=True)
+            total_passif_display = total_passif + total_tva_col + max(0, capitaux)
+            st.markdown(f"""
+            <div style="display:flex;justify-content:space-between;
+                 background:rgba(240,160,112,0.08);border-radius:10px;margin-top:0.5rem;padding:0.8rem;">
+                <b style="color:#a0522d;">TOTAL PASSIF</b>
+                <b style="color:#fc8181;font-size:1.1rem;">{total_passif_display:,.2f} €</b>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        # Graphique bilan
+        fig_bilan = go.Figure(go.Bar(
+            x=["Créances clients","Notes de frais","TVA collectée","Résultat net"],
+            y=[total_actif, total_passif, total_tva_col, max(0, capitaux)],
+            marker_color=["#68d391","#fc8181","#b794f4","#f6ad55"],
+            text=[f"{v:,.0f} €" for v in [total_actif,total_passif,total_tva_col,max(0,capitaux)]],
+            textposition="outside"
+        ))
+        fig_bilan.update_layout(
+            title="Synthèse du bilan", height=320,
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(family="Inter", color="#a0522d"),
+            margin=dict(t=40,b=20,l=20,r=20),
+            yaxis=dict(showgrid=True, gridcolor="rgba(240,160,112,0.1)", ticksuffix=" €"),
+            showlegend=False
+        )
+        st.plotly_chart(fig_bilan, use_container_width=True)
+
+    # ── TVA ──────────────────────────────────────────────────────────────────
+    with tab4:
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+
+        tva_collectee  = sum(float(f.get("tva",0)) for f in factures)
+        tva_deductible = sum(float(n.get("montant_ttc",0)) * (float(n.get("taux_tva",20)) / (100+float(n.get("taux_tva",20)))) for n in notes)
+        tva_due        = tva_collectee - tva_deductible
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-icon">📤</div>
+            <div class="kpi-value" style="color:#fc8181;">{tva_collectee:,.2f} €</div>
+            <div class="kpi-label">TVA collectée</div>
+            <div class="kpi-delta" style="color:#c8956c;">Sur ventes clients</div>
+            </div>""", unsafe_allow_html=True)
+        with c2:
+            st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-icon">📥</div>
+            <div class="kpi-value" style="color:#68d391;">{tva_deductible:,.2f} €</div>
+            <div class="kpi-label">TVA déductible</div>
+            <div class="kpi-delta" style="color:#c8956c;">Sur achats / frais</div>
+            </div>""", unsafe_allow_html=True)
+        with c3:
+            col_tva = "#fc8181" if tva_due > 0 else "#68d391"
+            label_tva = "À payer à l'État" if tva_due > 0 else "Crédit de TVA"
+            st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-icon">🏛️</div>
+            <div class="kpi-value" style="color:{col_tva};">{abs(tva_due):,.2f} €</div>
+            <div class="kpi-label">TVA nette due</div>
+            <div class="kpi-delta" style="color:{col_tva};">{label_tva}</div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
+
+        # TVA par mois
+        if factures:
+            df_tva = pd.DataFrame(factures)
+            df_tva["date"] = pd.to_datetime(df_tva["date"], errors="coerce")
+            df_tva["mois"] = df_tva["date"].dt.strftime("%Y-%m")
+            df_tva["tva"]  = pd.to_numeric(df_tva["tva"], errors="coerce").fillna(0)
+            monthly_tva = df_tva.groupby("mois")["tva"].sum().reset_index()
+
+            fig_tva = px.bar(monthly_tva, x="mois", y="tva",
+                             title="TVA collectée par mois",
+                             color_discrete_sequence=["#b794f4"])
+            fig_tva.update_layout(
+                height=300, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(family="Inter", color="#a0522d"),
+                margin=dict(t=40,b=20,l=20,r=20),
+                yaxis=dict(showgrid=True, gridcolor="rgba(240,160,112,0.1)", ticksuffix=" €"),
+                xaxis=dict(showgrid=False)
+            )
+            st.plotly_chart(fig_tva, use_container_width=True)
+
+    # ── Alertes ──────────────────────────────────────────────────────────────
+    with tab5:
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+
+        alertes = []
+        today = datetime.now().date()
+
+        for f in factures:
+            statut = str(f.get("statut",""))
+            if "payer" in statut.lower() and "payée" not in statut.lower():
+                try:
+                    d = datetime.strptime(str(f.get("date","")), "%Y-%m-%d").date()
+                    diff = (today - d).days
+                    if diff > 30:
+                        alertes.append({
+                            "type": "🔴 Urgent",
+                            "message": f"Facture {f.get('fournisseur','—')} en retard de {diff} jours",
+                            "montant": float(f.get("montant_ttc",0)),
+                            "niveau": "danger"
+                        })
+                    elif diff > 15:
+                        alertes.append({
+                            "type": "🟡 Attention",
+                            "message": f"Facture {f.get('fournisseur','—')} à relancer ({diff}j)",
+                            "montant": float(f.get("montant_ttc",0)),
+                            "niveau": "warning"
+                        })
+                except: pass
+
+        if tva_collectee > 0:
+            alertes.append({
+                "type": "🏛️ TVA",
+                "message": f"TVA à déclarer : {tva_collectee:,.2f} € collectée",
+                "montant": tva_collectee,
+                "niveau": "info"
+            })
+
+        if len(factures) > 0:
+            non_categ = [f for f in factures if f.get("categorie","") in ["Autres","","Non détecté"]]
+            if non_categ:
+                alertes.append({
+                    "type": "📂 Catégorie",
+                    "message": f"{len(non_categ)} facture(s) sans catégorie précise",
+                    "montant": 0,
+                    "niveau": "warning"
+                })
+
+        if alertes:
+            for a in alertes:
+                colors = {
+                    "danger":  ("rgba(252,129,129,0.1)","#c53030","#fc8181"),
+                    "warning": ("rgba(246,173,85,0.1)","#c05621","#f6ad55"),
+                    "info":    ("rgba(99,179,237,0.1)","#2b6cb0","#63b3ed")
+                }
+                bg, text, border = colors.get(a["niveau"], colors["info"])
+                montant_str = f" · {a['montant']:,.2f} €" if a["montant"] > 0 else ""
+                st.markdown(f"""
+                <div style="background:{bg};border-left:4px solid {border};
+                     border-radius:12px;padding:1rem 1.2rem;margin-bottom:0.8rem;
+                     display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <span style="font-weight:700;color:{text};">{a['type']}</span>
+                        <br><span style="color:{text};opacity:0.8;font-size:0.9rem;">{a['message']}</span>
+                    </div>
+                    <div style="font-weight:700;color:{text};font-size:1.1rem;">{montant_str}</div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="text-align:center;padding:3rem;background:rgba(104,211,145,0.1);
+                 border-radius:20px;border:2px solid rgba(104,211,145,0.3);">
+                <div style="font-size:3rem;">✅</div>
+                <h3 style="color:#276749;">Tout est en ordre !</h3>
+                <p style="color:#68d391;">Aucune alerte comptable</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FACTURES avec APERÇU
 # ═══════════════════════════════════════════════════════════════════════════════
 def show_factures():
-    hero("📄", "Gestion des Factures", "Importez et analysez vos factures avec l'IA 🤖")
+    hero("📄", "Gestion des Factures", "Import, analyse IA et prévisualisation 🔍")
 
     if "resultats" not in st.session_state:
         st.session_state["resultats"] = []
+    if "current_preview" not in st.session_state:
+        st.session_state["current_preview"] = None
+    if "current_preview_name" not in st.session_state:
+        st.session_state["current_preview_name"] = ""
 
-    tab1, tab2, tab3 = st.tabs(["📤 Import & Analyse", "📋 Liste", "📊 Export"])
+    tab1, tab2, tab3 = st.tabs(["📤 Import & Analyse", "📋 Liste & Aperçu", "📊 Export"])
 
+    # ── Import ───────────────────────────────────────────────────────────────
     with tab1:
         st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
-        uploaded_files = st.file_uploader(
-            "Glissez vos factures (PDF ou image)",
-            type=["pdf","png","jpg","jpeg"],
-            accept_multiple_files=True,
-            key="facture_uploader"
-        )
 
-        if uploaded_files:
-            col_info, col_btn = st.columns([2, 1])
-            with col_info:
+        # Layout : upload à gauche, preview à droite
+        col_upload, col_preview = st.columns([1, 1])
+
+        with col_upload:
+            uploaded_files = st.file_uploader(
+                "Glissez vos factures (PDF ou image)",
+                type=["pdf","png","jpg","jpeg"],
+                accept_multiple_files=True,
+                key="facture_uploader"
+            )
+
+            if uploaded_files:
+                # Dédoublonnage
+                existing_names = {r.get("fichier","") for r in get_data("factures")}
+                new_files = [f for f in uploaded_files if f.name not in existing_names]
+                already   = [f for f in uploaded_files if f.name in existing_names]
+
+                if already:
+                    st.warning(f"⚠️ {len(already)} fichier(s) déjà importé(s) ignoré(s)")
+
+                if new_files:
+                    st.markdown(f"""
+                    <div style="background:#fff8f0;border-radius:14px;padding:0.8rem 1.2rem;
+                         border:2px solid rgba(240,160,112,0.3);margin:0.5rem 0;">
+                        <span style="color:#a0522d;font-weight:600;">
+                            📁 {len(new_files)} nouveau(x) fichier(s)
+                        </span>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # Sélecteur de prévisualisation avant analyse
+                    names = [f.name for f in new_files]
+                    selected_preview = st.selectbox("👁️ Prévisualiser", names, key="select_preview")
+
+                    for f in new_files:
+                        if f.name == selected_preview:
+                            content = f.read()
+                            f.seek(0)
+                            if f.name.lower().endswith(".pdf"):
+                                imgs = pdf_to_images(content)
+                                st.session_state["current_preview"] = imgs
+                            else:
+                                img = Image.open(io.BytesIO(content))
+                                st.session_state["current_preview"] = [img]
+                            st.session_state["current_preview_name"] = f.name
+
+                    if st.button("🔍 Analyser avec Gemini 2.5",
+                                 use_container_width=True, key="btn_analyser"):
+                        model = configure_gemini()
+                        if not model:
+                            st.error("❌ Clé API Gemini manquante")
+                        else:
+                            progress = st.progress(0)
+                            status   = st.empty()
+                            for i, f in enumerate(new_files):
+                                status.markdown(f"""
+                                <div style="background:#fff8f0;border-radius:12px;padding:0.8rem;
+                                     border-left:4px solid #f0a070;">
+                                    🔍 Analyse : <b>{f.name}</b>…
+                                </div>
+                                """, unsafe_allow_html=True)
+                                content = f.read()
+                                images  = pdf_to_images(content) if f.name.lower().endswith(".pdf") \
+                                          else [Image.open(io.BytesIO(content))]
+                                result  = extraire_facture(model, images)
+                                result["fichier"] = f.name
+
+                                # Sauvegarde préview
+                                if f.name == st.session_state.get("current_preview_name",""):
+                                    st.session_state["current_preview"] = images
+
+                                try:
+                                    supabase = get_supabase()
+                                    uid = st.session_state.get("user_id","")
+                                    supabase.table("factures").insert({**result,"user_id":uid}).execute()
+                                except:
+                                    st.session_state["resultats"].append(result)
+
+                                progress.progress((i+1)/len(new_files))
+                            status.success(f"✅ {len(new_files)} facture(s) analysée(s) !")
+                            st.rerun()
+
+        # ── Preview droite ──
+        with col_preview:
+            st.markdown("""
+            <div class="invoice-viewer">
+                <div class="invoice-viewer-header">
+                    <span class="invoice-viewer-title">👁️ Aperçu de la facture</span>
+                </div>
+            """, unsafe_allow_html=True)
+
+            if st.session_state.get("current_preview"):
+                imgs = st.session_state["current_preview"]
+                fname = st.session_state.get("current_preview_name","")
+
                 st.markdown(f"""
-                <div style="background:#fff8f0;border-radius:14px;padding:0.8rem 1.2rem;
-                     border:2px solid rgba(240,160,112,0.3);">
-                    <span style="color:#a0522d;font-weight:600;">
-                        📁 {len(uploaded_files)} fichier(s) prêt(s) à analyser
-                    </span>
+                <div style="background:rgba(240,160,112,0.08);border-radius:10px;
+                     padding:0.5rem 1rem;margin-bottom:0.8rem;font-size:0.82rem;
+                     color:#a0522d;font-weight:600;">
+                    📄 {fname}  ·  {len(imgs)} page(s)
                 </div>
                 """, unsafe_allow_html=True)
-            with col_btn:
-                analyser = st.button("🔍 Analyser avec l'IA",
-                                     use_container_width=True, key="btn_analyser")
 
-            if analyser:
-                model = configure_gemini()
-                if not model:
-                    st.error("❌ Clé API Gemini manquante")
+                if len(imgs) > 1:
+                    page_idx = st.slider("Page", 1, len(imgs), 1, key="preview_page") - 1
+                    st.image(imgs[page_idx], use_column_width=True)
                 else:
-                    progress = st.progress(0)
-                    status   = st.empty()
-                    for i, f in enumerate(uploaded_files):
-                        status.markdown(f"""
-                        <div style="background:#fff8f0;border-radius:12px;padding:0.8rem;
-                             border-left:4px solid #f0a070;">
-                            🔍 Analyse de <b>{f.name}</b>…
-                        </div>
-                        """, unsafe_allow_html=True)
-                        content = f.read()
-                        images  = pdf_to_images(content) if f.name.lower().endswith(".pdf") \
-                                  else [Image.open(io.BytesIO(content))]
-                        result = extraire_facture(model, images)
-                        result["fichier"] = f.name
+                    st.image(imgs[0], use_column_width=True)
 
-                        try:
-                            supabase = get_supabase()
-                            uid = st.session_state.get("user_id","")
-                            supabase.table("factures").insert({**result,"user_id":uid}).execute()
-                        except:
-                            st.session_state["resultats"].append(result)
+                # Zoom toggle
+                if st.button("🔍 Agrandir", key="zoom_btn", use_container_width=True):
+                    st.session_state["zoom_preview"] = not st.session_state.get("zoom_preview", False)
 
-                        progress.progress((i+1)/len(uploaded_files))
+                if st.session_state.get("zoom_preview", False):
+                    with st.expander("🔍 Vue agrandie", expanded=True):
+                        for img in imgs:
+                            st.image(img, use_column_width=True)
+            else:
+                st.markdown("""
+                <div style="text-align:center;padding:4rem 2rem;">
+                    <div style="font-size:4rem;margin-bottom:1rem;">📄</div>
+                    <p style="color:#c8956c;font-weight:600;">Sélectionnez un fichier</p>
+                    <p style="color:#d4a882;font-size:0.85rem;">
+                        L'aperçu apparaîtra ici
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
 
-                    status.success(f"✅ {len(uploaded_files)} facture(s) analysée(s) !")
-                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
+    # ── Liste & Aperçu ───────────────────────────────────────────────────────
     with tab2:
-        try:
-            supabase = get_supabase()
-            uid = st.session_state.get("user_id","")
-            factures = supabase.table("factures").select("*").eq("user_id",uid).execute().data or []
-        except:
-            factures = st.session_state.get("resultats",[])
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+        factures = get_data("factures")
 
         if factures:
             # Filtres
-            col_f1, col_f2, col_f3 = st.columns(3)
+            col_f1, col_f2, col_f3, col_f4 = st.columns(4)
             with col_f1:
-                search = st.text_input("🔍 Rechercher", placeholder="Fournisseur…", key="fact_search")
+                search = st.text_input("🔍 Rechercher", key="fact_search")
             with col_f2:
-                cats = ["Toutes"] + list(set(f.get("categorie","") for f in factures))
+                cats = ["Toutes"] + sorted(set(f.get("categorie","") for f in factures))
                 cat_filter = st.selectbox("📂 Catégorie", cats, key="fact_cat")
             with col_f3:
-                statuts = ["Tous"] + list(set(f.get("statut","") for f in factures))
+                statuts = ["Tous"] + sorted(set(f.get("statut","") for f in factures))
                 stat_filter = st.selectbox("🏷️ Statut", statuts, key="fact_stat")
+            with col_f4:
+                sort_by = st.selectbox("↕️ Trier par", ["Date ↓","Date ↑","Montant ↓","Montant ↑"], key="fact_sort")
 
             filtered = [f for f in factures
                         if (not search or search.lower() in str(f.get("fournisseur","")).lower())
                         and (cat_filter == "Toutes" or f.get("categorie") == cat_filter)
                         and (stat_filter == "Tous" or f.get("statut") == stat_filter)]
 
-            st.markdown(f"<p style='color:#c8956c;font-size:0.85rem;'>{len(filtered)} résultat(s)</p>",
-                        unsafe_allow_html=True)
+            if sort_by == "Date ↓":
+                filtered.sort(key=lambda x: str(x.get("date","")), reverse=True)
+            elif sort_by == "Date ↑":
+                filtered.sort(key=lambda x: str(x.get("date","")))
+            elif sort_by == "Montant ↓":
+                filtered.sort(key=lambda x: float(x.get("montant_ttc",0)), reverse=True)
+            else:
+                filtered.sort(key=lambda x: float(x.get("montant_ttc",0)))
 
-            for idx, r in enumerate(filtered):
-                statut = r.get("statut","À payer")
-                badge_cls = "badge-green" if "Payée" in statut else (
-                    "badge-red" if "retard" in statut else "badge-orange")
-                with st.expander(
-                    f"🏢 {r.get('fournisseur','—')} · {r.get('date','—')} · "
-                    f"{float(r.get('montant_ttc',0)):.2f} €", expanded=False
-                ):
-                    c1, c2, c3 = st.columns(3)
-                    with c1:
-                        st.markdown(f"""
-                        <div class="metric-card" style="padding:1rem;">
-                            <p style="color:#c8956c;font-size:0.75rem;margin:0;">N° Facture</p>
-                            <p style="color:#a0522d;font-weight:700;margin:0;">{r.get('numero','—')}</p>
+            st.markdown(f"<p style='color:#c8956c;font-size:0.85rem;margin-bottom:1rem;'>"
+                        f"<b>{len(filtered)}</b> résultat(s)</p>", unsafe_allow_html=True)
+
+            # Layout liste + preview
+            col_list, col_view = st.columns([1, 1])
+
+            with col_list:
+                for idx, r in enumerate(filtered):
+                    statut = r.get("statut","À payer")
+                    badge_color = "#68d391" if "Payée" in statut else (
+                        "#fc8181" if "retard" in statut.lower() else "#f6ad55")
+                    ttc = float(r.get("montant_ttc",0))
+
+                    selected = st.session_state.get("selected_facture_idx") == idx
+
+                    if st.button(
+                        f"{'▶' if selected else '○'}  {r.get('fournisseur','—')[:22]}  ·  "
+                        f"{r.get('date','—')}  ·  {ttc:.2f} €",
+                        key=f"sel_fact_{idx}",
+                        use_container_width=True,
+                        type="primary" if selected else "secondary"
+                    ):
+                        st.session_state["selected_facture_idx"] = idx
+                        st.rerun()
+
+            with col_view:
+                sel_idx = st.session_state.get("selected_facture_idx")
+                if sel_idx is not None and sel_idx < len(filtered):
+                    r = filtered[sel_idx]
+                    st.markdown(f"""
+                    <div class="invoice-viewer">
+                        <div class="invoice-viewer-header">
+                            <span class="invoice-viewer-title">
+                                📄 {r.get('fournisseur','—')}
+                            </span>
+                            <span style="font-size:0.8rem;color:#c8956c;">
+                                {r.get('date','—')}
+                            </span>
                         </div>
-                        """, unsafe_allow_html=True)
-                    with c2:
+                    """, unsafe_allow_html=True)
+
+                    # Détails
+                    fields = [
+                        ("🏢 Fournisseur", r.get("fournisseur","—")),
+                        ("🔢 N° Facture",  r.get("numero","—")),
+                        ("📅 Date",         r.get("date","—")),
+                        ("📂 Catégorie",    r.get("categorie","—")),
+                        ("💵 Montant HT",   f"{float(r.get('montant_ht',0)):.2f} €"),
+                        ("📊 TVA",          f"{float(r.get('tva',0)):.2f} €"),
+                        ("💰 Montant TTC",  f"{float(r.get('montant_ttc',0)):.2f} €"),
+                        ("🏷️ Statut",       r.get("statut","—")),
+                    ]
+                    for label, val in fields:
                         st.markdown(f"""
-                        <div class="metric-card" style="padding:1rem;">
-                            <p style="color:#c8956c;font-size:0.75rem;margin:0;">Montant HT</p>
-                            <p style="color:#a0522d;font-weight:700;margin:0;">
-                                {float(r.get('montant_ht',0)):.2f} €
-                            </p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with c3:
-                        st.markdown(f"""
-                        <div class="metric-card" style="padding:1rem;">
-                            <p style="color:#c8956c;font-size:0.75rem;margin:0;">Montant TTC</p>
-                            <p style="color:#a0522d;font-weight:700;margin:0;">
-                                {float(r.get('montant_ttc',0)):.2f} €
-                            </p>
+                        <div style="display:flex;justify-content:space-between;
+                             padding:0.5rem 0;border-bottom:1px solid rgba(240,160,112,0.1);">
+                            <span style="color:#c8956c;font-size:0.85rem;">{label}</span>
+                            <b style="color:#
+                                                        <b style="color:#a0522d;font-size:0.85rem;">{val}</b>
                         </div>
                         """, unsafe_allow_html=True)
 
-                    col_s, col_d = st.columns(2)
-                    with col_s:
-                        new_statut = st.selectbox(
-                            "Statut", ["À payer","Payée ✅","En retard ⚠️"],
-                            index=["À payer","Payée ✅","En retard ⚠️"].index(statut)
-                            if statut in ["À payer","Payée ✅","En retard ⚠️"] else 0,
-                            key=f"statut_{idx}"
-                        )
-                    with col_d:
-                        if st.button("🗑️ Supprimer", key=f"del_fact_{idx}"):
+                    # Montants en cards
+                    st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
+                    m1, m2, m3 = st.columns(3)
+                    for col_m, label, key, color in [
+                        (m1, "💵 HT",  "montant_ht",  "#68d391"),
+                        (m2, "📊 TVA", "tva",         "#b794f4"),
+                        (m3, "💰 TTC", "montant_ttc", "#f0a070"),
+                    ]:
+                        with col_m:
+                            st.markdown(f"""
+                            <div style="background:rgba(240,160,112,0.08);border-radius:12px;
+                                 padding:0.8rem;text-align:center;
+                                 border:1px solid rgba(240,160,112,0.2);">
+                                <div style="font-size:0.75rem;color:#c8956c;font-weight:600;">{label}</div>
+                                <div style="font-size:1.1rem;font-weight:800;color:{color};">
+                                    {float(r.get(key,0)):.2f} €
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                    st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
+
+                    # Actions
+                    a1, a2, a3 = st.columns(3)
+                    with a1:
+                        new_statut = st.selectbox("Statut",
+                            ["À payer","Payée","En retard","Annulée"],
+                            index=["À payer","Payée","En retard","Annulée"].index(
+                                r.get("statut","À payer"))
+                            if r.get("statut","À payer") in ["À payer","Payée","En retard","Annulée"] else 0,
+                            key=f"statut_{sel_idx}")
+                    with a2:
+                        if st.button("💾 Enregistrer", key=f"save_{sel_idx}", use_container_width=True):
                             try:
-                                supabase = get_supabase()
-                                supabase.table("factures").delete().eq("id",r.get("id")).execute()
+                                get_supabase().table("factures").update(
+                                    {"statut": new_statut}
+                                ).eq("id", r["id"]).execute()
+                                st.success("✅ Statut mis à jour")
+                                st.rerun()
                             except:
-                                st.session_state["resultats"].pop(idx)
-                            st.rerun()
+                                r["statut"] = new_statut
+                                st.success("✅ Mis à jour localement")
+                    with a3:
+                        if st.button("🗑️ Supprimer", key=f"del_{sel_idx}", use_container_width=True):
+                            try:
+                                get_supabase().table("factures").delete().eq("id", r["id"]).execute()
+                                st.session_state["selected_facture_idx"] = None
+                                st.rerun()
+                            except:
+                                st.error("❌ Erreur suppression")
 
-                    if new_statut != statut:
-                        try:
-                            supabase = get_supabase()
-                            supabase.table("factures").update({"statut":new_statut})\
-                                    .eq("id",r.get("id")).execute()
-                            st.rerun()
-                        except:
-                            pass
+                    st.markdown("</div>", unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div class="invoice-viewer" style="text-align:center;padding:4rem 2rem;">
+                        <div style="font-size:4rem;">👈</div>
+                        <p style="color:#c8956c;font-weight:600;">
+                            Sélectionnez une facture
+                        </p>
+                        <p style="color:#d4a882;font-size:0.85rem;">
+                            Cliquez sur une facture pour voir son détail
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
         else:
             st.markdown("""
-            <div style="text-align:center;padding:4rem;background:white;
-                 border-radius:24px;border:2px dashed #f0d5c0;">
-                <div style="font-size:4rem;">🐱</div>
+            <div style="text-align:center;padding:4rem;background:white;border-radius:24px;
+                 border:2px dashed rgba(240,160,112,0.3);">
+                <div style="font-size:4rem;">📭</div>
                 <h3 style="color:#a0522d;">Aucune facture</h3>
-                <p style="color:#c8956c;">Importez vos premières factures 🐾</p>
+                <p style="color:#c8956c;">Importez vos premières factures dans l'onglet Import</p>
             </div>
             """, unsafe_allow_html=True)
 
+    # ── Export ───────────────────────────────────────────────────────────────
     with tab3:
-        try:
-            supabase = get_supabase()
-            uid = st.session_state.get("user_id","")
-            factures = supabase.table("factures").select("*").eq("user_id",uid).execute().data or []
-        except:
-            factures = st.session_state.get("resultats",[])
-
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+        factures = get_data("factures")
         if factures:
-            df = pd.DataFrame(factures)
-            st.dataframe(df, use_container_width=True, height=400)
-            c1, c2 = st.columns(2)
-            with c1:
-                st.download_button("📥 CSV", df.to_csv(index=False).encode(),
-                    f"factures_{datetime.now().strftime('%Y_%m')}.csv", "text/csv",
-                    use_container_width=True, key="dl_csv_fact")
-            with c2:
-                buf = io.BytesIO()
-                with pd.ExcelWriter(buf, engine="openpyxl") as w:
-                    df.to_excel(w, index=False, sheet_name="Factures")
-                st.download_button("📊 Excel", buf.getvalue(),
-                    f"factures_{datetime.now().strftime('%Y_%m')}.xlsx",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True, key="dl_xl_fact")
+            df_exp = pd.DataFrame(factures)
+            st.dataframe(df_exp, use_container_width=True, hide_index=True)
+            st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+            e1, e2 = st.columns(2)
+            with e1:
+                csv = df_exp.to_csv(index=False, encoding="utf-8-sig")
+                st.download_button("📥 Télécharger CSV",
+                    data=csv, file_name="factures.csv", mime="text/csv",
+                    use_container_width=True)
+            with e2:
+                json_data = json.dumps(factures, ensure_ascii=False, indent=2)
+                st.download_button("📥 Télécharger JSON",
+                    data=json_data, file_name="factures.json", mime="application/json",
+                    use_container_width=True)
+        else:
+            st.info("📭 Aucune facture à exporter")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # NOTES DE FRAIS
 # ═══════════════════════════════════════════════════════════════════════════════
-def show_notes():
-    hero("🧾", "Notes de Frais", "Gérez vos dépenses professionnelles 💼")
+def show_notes_frais():
+    hero("🧾", "Notes de Frais", "Gérez et remboursez vos dépenses professionnelles")
 
     if "notes_frais" not in st.session_state:
         st.session_state["notes_frais"] = []
 
-    tab1, tab2 = st.tabs(["➕ Nouvelle note", "📋 Historique"])
+    tab1, tab2 = st.tabs(["➕ Nouvelle note", "📋 Mes notes"])
 
     with tab1:
         st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
-        with st.container():
+
+        col_form, col_prev = st.columns([1, 1])
+
+        with col_form:
+            st.markdown('<div class="module-card">', unsafe_allow_html=True)
             st.markdown("""
-            <div style="background:white;border-radius:20px;padding:2rem;
-                 border:1px solid rgba(240,160,112,0.15);
-                 box-shadow:0 4px 20px rgba(240,160,112,0.08);">
-            """, unsafe_allow_html=True)
-
-            col1, col2 = st.columns(2)
-            with col1:
-                date_note   = st.date_input("📅 Date", datetime.now(), key="note_date")
-                categorie   = st.selectbox("📂 Catégorie",
-                    ["Transport","Repas","Hébergement","Fournitures","Informatique","Autres"],
-                    key="note_cat")
-                montant_ht  = st.number_input("💵 Montant HT (€)", 0.0, step=0.01, key="note_ht")
-            with col2:
-                description = st.text_area("📝 Description", key="note_desc", height=100)
-                taux_tva    = st.selectbox("📊 Taux TVA", [20.0, 10.0, 5.5, 0.0], key="note_tva")
-                justificatif = st.file_uploader("📎 Justificatif", key="note_file",
-                    type=["pdf","png","jpg","jpeg"])
-
-            tva = round(montant_ht * taux_tva / 100, 2)
-            montant_ttc = round(montant_ht + tva, 2)
-
-            st.markdown(f"""
-            <div style="background:linear-gradient(135deg,#fff8f0,#fdf0e8);
-                 border-radius:14px;padding:1rem;margin:1rem 0;
-                 border:2px solid rgba(240,160,112,0.2);
-                 display:flex;gap:2rem;">
-                <div><span style="color:#c8956c;font-size:0.8rem;">HT</span>
-                     <br><b style="color:#a0522d;">{montant_ht:.2f} €</b></div>
-                <div><span style="color:#c8956c;font-size:0.8rem;">TVA {taux_tva}%</span>
-                     <br><b style="color:#a0522d;">{tva:.2f} €</b></div>
-                <div><span style="color:#c8956c;font-size:0.8rem;">TTC</span>
-                     <br><b style="color:#a0522d;font-size:1.2rem;">{montant_ttc:.2f} €</b></div>
+            <div class="module-header">
+                <div class="module-icon">➕</div>
+                <div><div class="module-title">Nouvelle note de frais</div>
+                     <div class="module-sub">Saisie manuelle ou par IA</div></div>
             </div>
             """, unsafe_allow_html=True)
 
-            if st.button("✅ Ajouter la note", use_container_width=True, key="btn_add_note"):
-                if description and montant_ht > 0:
+            uploaded_note = st.file_uploader(
+                "Justificatif (optionnel)", type=["pdf","png","jpg","jpeg"],
+                key="note_uploader")
+
+            n1, n2 = st.columns(2)
+            with n1: nom        = st.text_input("👤 Employé", key="note_nom")
+            with n2: date_note  = st.date_input("📅 Date", key="note_date")
+            n3, n4 = st.columns(2)
+            with n3:
+                cat_note = st.selectbox("📂 Catégorie",
+                    ["Transport","Repas","Hébergement","Fournitures","Téléphone","Autres"],
+                    key="note_cat")
+            with n4: montant_note = st.number_input("💰 Montant TTC (€)", min_value=0.0, step=0.01, key="note_montant")
+            n5, n6 = st.columns(2)
+            with n5:
+                tva_note = st.selectbox("📊 Taux TVA", [0, 5.5, 10, 20], index=3, key="note_tva")
+            with n6:
+                statut_note = st.selectbox("🏷️ Statut",
+                    ["À rembourser","Remboursée","En attente"], key="note_statut")
+            desc_note = st.text_area("📝 Description", key="note_desc", height=80)
+
+            btn_col1, btn_col2 = st.columns(2)
+            with btn_col1:
+                if uploaded_note and st.button("🤖 Analyser IA", key="note_ia", use_container_width=True):
+                    model = configure_gemini()
+                    if model:
+                        content = uploaded_note.read()
+                        images  = pdf_to_images(content) if uploaded_note.name.lower().endswith(".pdf") \
+                                  else [Image.open(io.BytesIO(content))]
+                        result  = extraire_facture(model, images)
+                        st.session_state["note_ia_result"] = result
+                        st.success(f"✅ Détecté : {result.get('fournisseur','—')} · {result.get('montant_ttc',0)} €")
+
+            with btn_col2:
+                if st.button("💾 Enregistrer", key="save_note", use_container_width=True):
+                    ia = st.session_state.get("note_ia_result", {})
                     note = {
-                        "date": str(date_note), "description": description,
-                        "categorie": categorie, "montant_ht": montant_ht,
-                        "tva": tva, "montant_ttc": montant_ttc, "taux_tva": taux_tva,
-                        "justificatif": justificatif.name if justificatif else "—"
+                        "employe":     nom or ia.get("fournisseur","—"),
+                        "date":        str(date_note),
+                        "categorie":   cat_note,
+                        "montant_ttc": montant_note or float(ia.get("montant_ttc",0)),
+                        "taux_tva":    tva_note,
+                        "statut":      statut_note,
+                        "description": desc_note,
+                        "fichier":     uploaded_note.name if uploaded_note else ""
                     }
                     try:
-                        supabase = get_supabase()
                         uid = st.session_state.get("user_id","")
-                        supabase.table("notes_frais").insert({**note,"user_id":uid}).execute()
-                        st.success("✅ Note sauvegardée !")
-                    except Exception as e:
+                        get_supabase().table("notes_frais").insert({**note,"user_id":uid}).execute()
+                        st.success("✅ Note enregistrée dans Supabase !")
+                    except:
                         st.session_state["notes_frais"].append(note)
-                        st.warning(f"⚠️ Local seulement : {e}")
+                        st.success("✅ Note enregistrée localement !")
+                    st.session_state.pop("note_ia_result", None)
                     st.rerun()
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with col_prev:
+            st.markdown("""
+            <div class="invoice-viewer">
+                <div class="invoice-viewer-header">
+                    <span class="invoice-viewer-title">👁️ Aperçu justificatif</span>
+                </div>
+            """, unsafe_allow_html=True)
+
+            if uploaded_note:
+                content = uploaded_note.read()
+                uploaded_note.seek(0)
+                if uploaded_note.name.lower().endswith(".pdf"):
+                    imgs = pdf_to_images(content)
                 else:
-                    st.error("❌ Description et montant requis")
+                    imgs = [Image.open(io.BytesIO(content))]
+                if len(imgs) > 1:
+                    pg = st.slider("Page", 1, len(imgs), 1, key="note_page") - 1
+                    st.image(imgs[pg], use_column_width=True)
+                else:
+                    st.image(imgs[0], use_column_width=True)
+
+                if st.session_state.get("note_ia_result"):
+                    ia = st.session_state["note_ia_result"]
+                    st.markdown(f"""
+                    <div style="background:rgba(104,211,145,0.1);border-radius:12px;
+                         padding:1rem;margin-top:1rem;border:1px solid rgba(104,211,145,0.3);">
+                        <b style="color:#276749;">✅ Résultat IA</b><br>
+                        <span style="color:#2f855a;font-size:0.85rem;">
+                            {ia.get('fournisseur','—')} · {ia.get('date','—')} ·
+                            <b>{float(ia.get('montant_ttc',0)):.2f} €</b>
+                        </span>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style="text-align:center;padding:4rem 2rem;">
+                    <div style="font-size:4rem;">🧾</div>
+                    <p style="color:#c8956c;font-weight:600;">
+                        Uploadez un justificatif
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
 
             st.markdown("</div>", unsafe_allow_html=True)
 
     with tab2:
-        try:
-            supabase = get_supabase()
-            uid = st.session_state.get("user_id","")
-            notes = supabase.table("notes_frais").select("*").eq("user_id",uid).execute().data or []
-        except:
-            notes = st.session_state.get("notes_frais",[])
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+        notes = get_data("notes_frais")
 
         if notes:
-            for idx, n in enumerate(notes):
-                with st.expander(
-                    f"📝 {n.get('description','—')[:40]} · {n.get('date','—')} · "
-                    f"{float(n.get('montant_ttc',0)):.2f} €"
-                ):
-                    c1, c2, c3 = st.columns(3)
-                    with c1:
-                        st.markdown(f"""
-                        <div class="metric-card" style="padding:1rem;">
-                            <p style="color:#c8956c;font-size:0.75rem;margin:0;">Catégorie</p>
-                            <p style="color:#a0522d;font-weight:700;margin:0;">{n.get('categorie','—')}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with c2:
-                        st.markdown(f"""
-                        <div class="metric-card" style="padding:1rem;">
-                            <p style="color:#c8956c;font-size:0.75rem;margin:0;">HT</p>
-                            <p style="color:#a0522d;font-weight:700;margin:0;">
-                                {float(n.get('montant_ht',0)):.2f} €
-                            </p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with c3:
-                        st.markdown(f"""
-                        <div class="metric-card" style="padding:1rem;">
-                            <p style="color:#c8956c;font-size:0.75rem;margin:0;">TTC</p>
-                            <p style="color:#a0522d;font-weight:700;margin:0;">
-                                {float(n.get('montant_ttc',0)):.2f} €
-                            </p>
-                        </div>
-                        """, unsafe_allow_html=True)
+            # KPIs rapides
+            total_n = sum(float(n.get("montant_ttc",0)) for n in notes)
+            a_rembourser = sum(float(n.get("montant_ttc",0)) for n in notes if "rembourser" in str(n.get("statut","")).lower())
+            remboursees  = sum(float(n.get("montant_ttc",0)) for n in notes if "Remboursée" in str(n.get("statut","")))
 
-                    if st.button("🗑️ Supprimer", key=f"del_note_{idx}", use_container_width=True):
-                        try:
-                            supabase = get_supabase()
-                            supabase.table("notes_frais").delete().eq("id",n.get("id")).execute()
-                        except:
-                            st.session_state["notes_frais"].pop(idx)
-                        st.rerun()
+            k1, k2, k3 = st.columns(3)
+            for col, icon, val, label, color in [
+                (k1, "💸", f"{total_n:,.2f} €",        "Total dépenses",   "#f0a070"),
+                (k2, "⏳", f"{a_rembourser:,.2f} €",   "À rembourser",     "#f6ad55"),
+                (k3, "✅", f"{remboursees:,.2f} €",    "Remboursées",      "#68d391"),
+            ]:
+                with col:
+                    st.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-icon">{icon}</div>
+                        <div class="kpi-value" style="color:{color};">{val}</div>
+                        <div class="kpi-label">{label}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            # Export
             st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
-            df_n = pd.DataFrame(notes)
-            c1, c2 = st.columns(2)
-            with c1:
-                st.download_button("📥 CSV", df_n.to_csv(index=False).encode(),
-                    f"notes_{datetime.now().strftime('%Y_%m')}.csv", "text/csv",
-                    use_container_width=True, key="dl_csv_notes")
-            with c2:
-                buf = io.BytesIO()
-                with pd.ExcelWriter(buf, engine="openpyxl") as w:
-                    df_n.to_excel(w, index=False, sheet_name="Notes")
-                st.download_button("📊 Excel", buf.getvalue(),
-                    f"notes_{datetime.now().strftime('%Y_%m')}.xlsx",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True, key="dl_xl_notes")
+            df_notes = pd.DataFrame(notes)
+            cols_show = [c for c in ["employe","date","categorie","montant_ttc","statut","description"] if c in df_notes.columns]
+            st.dataframe(df_notes[cols_show], use_container_width=True, hide_index=True)
+
+            csv_n = df_notes.to_csv(index=False, encoding="utf-8-sig")
+            st.download_button("📥 Exporter CSV", data=csv_n,
+                file_name="notes_frais.csv", mime="text/csv", use_container_width=True)
         else:
             st.markdown("""
-            <div style="text-align:center;padding:4rem;background:white;
-                 border-radius:24px;border:2px dashed #f0d5c0;">
-                <div style="font-size:4rem;">🐱</div>
+            <div style="text-align:center;padding:4rem;background:white;border-radius:24px;
+                 border:2px dashed rgba(240,160,112,0.3);">
+                <div style="font-size:4rem;">📭</div>
                 <h3 style="color:#a0522d;">Aucune note de frais</h3>
-                <p style="color:#c8956c;">Ajoutez votre première note 🐾</p>
+                <p style="color:#c8956c;">Ajoutez votre première note dans l'onglet Nouvelle note</p>
             </div>
             """, unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CHATBOT PLEINE PAGE
+# ASSISTANT IA
 # ═══════════════════════════════════════════════════════════════════════════════
-def show_chatbot():
-    hero("🐱👓", "Assistant IA", "Posez toutes vos questions comptables 💬")
+def show_assistant():
+    hero("🤖", "Assistant IA", "Votre comptable intelligent propulsé par Gemini 2.5 Flash 🐱")
 
     if "chat_messages" not in st.session_state:
         st.session_state["chat_messages"] = []
 
-    try:
-        supabase = get_supabase()
-        uid = st.session_state.get("user_id","")
-        factures_data = supabase.table("factures").select("*").eq("user_id",uid).execute().data or []
-        notes_data    = supabase.table("notes_frais").select("*").eq("user_id",uid).execute().data or []
-    except:
-        factures_data = st.session_state.get("resultats",[])
-        notes_data    = st.session_state.get("notes_frais",[])
+    factures_data = get_data("factures")
+    notes_data    = get_data("notes_frais")
 
-    # Historique
-    chat_container = st.container()
-    with chat_container:
-        if not st.session_state["chat_messages"]:
-            st.markdown("""
-            <div style="text-align:center;padding:3rem;background:white;
-                 border-radius:24px;border:2px dashed rgba(240,160,112,0.3);">
-                <div style="font-size:4rem;">🐱👓</div>
-                <h3 style="color:#a0522d;">Bonjour ! Je suis votre assistant comptable</h3>
-                <p style="color:#c8956c;">
-                    Posez-moi des questions sur vos factures, notes de frais, TVA…
-                </p>
+    # Suggestions rapides
+    st.markdown("""
+    <div style="margin-bottom:1rem;">
+        <p style="color:#c8956c;font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;">
+            💡 Questions rapides :
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    suggestions = [
+        "📊 Résume mes finances",
+        "💸 TVA à déclarer ?",
+        "⚠️ Factures en retard ?",
+        "📈 Meilleur mois ?",
+        "🏆 Top fournisseurs",
+    ]
+    s_cols = st.columns(len(suggestions))
+    for i, (col, sug) in enumerate(zip(s_cols, suggestions)):
+        with col:
+            if st.button(sug, key=f"sug_{i}", use_container_width=True):
+                st.session_state["chat_messages"].append({"role":"user","content":sug})
+                model = configure_gemini()
+                if model:
+                    context = f"""Tu es FactureCat 🐱👓, assistant comptable expert.
+Factures : {json.dumps(factures_data, ensure_ascii=False)}
+Notes : {json.dumps(notes_data, ensure_ascii=False)}
+Réponds en français, de façon claire et professionnelle.
+Question : {sug}"""
+                    try:
+                        resp = model.generate_content(context)
+                        st.session_state["chat_messages"].append(
+                            {"role":"assistant","content":resp.text})
+                    except Exception as e:
+                        st.session_state["chat_messages"].append(
+                            {"role":"assistant","content":f"❌ {e}"})
+                st.rerun()
+
+    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+
+    # Historique chat
+    if not st.session_state["chat_messages"]:
+        st.markdown("""
+        <div style="text-align:center;padding:3rem;background:white;border-radius:24px;
+             border:2px dashed rgba(240,160,112,0.3);">
+            <div style="font-size:4rem;">🐱👓</div>
+            <h3 style="color:#a0522d;">Bonjour ! Je suis FactureCat</h3>
+            <p style="color:#c8956c;">
+                Posez-moi des questions sur vos factures, notes de frais, TVA…
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    for msg in st.session_state["chat_messages"]:
+        align = "flex-end"  if msg["role"] == "user" else "flex-start"
+        bg    = "linear-gradient(135deg,#f0a070,#e8856a)" if msg["role"] == "user" else "white"
+        color = "white" if msg["role"] == "user" else "#a0522d"
+        icon  = "👤" if msg["role"] == "user" else "🐱👓"
+        border = "none" if msg["role"] == "user" else "1px solid rgba(240,160,112,0.2)"
+        st.markdown(f"""
+        <div style="display:flex;justify-content:{align};margin:0.6rem 0;">
+            <div style="background:{bg};color:{color};padding:1rem 1.2rem;
+                 border-radius:20px;max-width:75%;
+                 box-shadow:0 4px 16px rgba(240,160,112,0.15);
+                 border:{border};font-size:0.9rem;line-height:1.5;">
+                <span style="opacity:0.6;font-size:0.75rem;">{icon}</span><br>
+                {msg['content']}
             </div>
-            """, unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
 
-        for msg in st.session_state["chat_messages"]:
-            align = "flex-end" if msg["role"] == "user" else "flex-start"
-            bg    = "linear-gradient(135deg,#f0a070,#e8856a)" if msg["role"] == "user" else "white"
-            color = "white" if msg["role"] == "user" else "#a0522d"
-            icon  = "👤" if msg["role"] == "user" else "🐱👓"
-            st.markdown(f"""
-            <div style="display:flex;justify-content:{align};margin:0.6rem 0;">
-                <div style="background:{bg};color:{color};padding:1rem 1.2rem;
-                     border-radius:20px;max-width:75%;
-                     box-shadow:0 4px 16px rgba(240,160,112,0.15);
-                     border:1px solid rgba(240,160,112,0.1);font-size:0.9rem;">
-                    <span style="opacity:0.6;font-size:0.75rem;">{icon}</span><br>
-                    {msg['content']}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
+    # Input
     user_input = st.chat_input("Posez votre question à FactureCat 🐾")
     if user_input:
         st.session_state["chat_messages"].append({"role":"user","content":user_input})
         model = configure_gemini()
         if model:
-            context = f"""Tu es FactureCat 🐱👓, assistant comptable expert et sympa.
-Factures : {json.dumps(factures_data, ensure_ascii=False)}
-Notes : {json.dumps(notes_data, ensure_ascii=False)}
-Réponds en français, clair et professionnel. Question : {user_input}"""
+            context = f"""Tu es FactureCat 🐱👓, assistant comptable expert et sympathique.
+Factures disponibles : {json.dumps(factures_data, ensure_ascii=False)}
+Notes de frais : {json.dumps(notes_data, ensure_ascii=False)}
+Réponds en français, de manière claire, structurée et professionnelle.
+Question : {user_input}"""
             try:
-                resp   = model.generate_content(context)
+                resp = model.generate_content(context)
                 answer = resp.text
             except Exception as e:
-                answer = f"❌ {e}"
+                answer = f"❌ Erreur : {e}"
         else:
-            answer = "❌ Clé API Gemini manquante"
+            answer = "❌ Clé API Gemini manquante dans les secrets"
         st.session_state["chat_messages"].append({"role":"assistant","content":answer})
         st.rerun()
+
+    # Bouton vider
+    if st.session_state["chat_messages"]:
+        if st.button("🗑️ Vider la conversation", key="clear_chat"):
+            st.session_state["chat_messages"] = []
+            st.rerun()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LOGIN
+# ═══════════════════════════════════════════════════════════════════════════════
+def show_login():
+    st.markdown("""
+    <div style="display:flex;flex-direction:column;align-items:center;
+         justify-content:center;min-height:90vh;">
+        <div style="background:white;border-radius:28px;padding:3rem;width:100%;max-width:420px;
+             box-shadow:0 20px 60px rgba(240,160,112,0.2);
+             border:1px solid rgba(240,160,112,0.15);">
+            <div style="text-align:center;margin-bottom:2rem;">
+                <div style="font-size:4rem;animation:float 3s ease-in-out infinite;">🐱</div>
+                <h1 style="background:linear-gradient(135deg,#f0a070,#e8856a);
+                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                    font-size:2rem;font-weight:800;margin:0.5rem 0;">FactureCat</h1>
+                <p style="color:#c8956c;margin:0;">Gestion comptable intelligente</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_center = st.columns([1, 2, 1])[1]
+    with col_center:
+        mode = st.radio("", ["🔐 Connexion", "📝 Inscription"],
+                        horizontal=True, key="login_mode")
+        email = st.text_input("📧 Email", key="login_email")
+        pwd   = st.text_input("🔑 Mot de passe", type="password", key="login_pwd")
+
+        if mode == "🔐 Connexion":
+            if st.button("🚀 Se connecter", use_container_width=True):
+                try:
+                    supabase = get_supabase()
+                    resp = supabase.auth.sign_in_with_password({"email":email,"password":pwd})
+                    st.session_state["authenticated"] = True
+                    st.session_state["user_email"]    = email
+                    st.session_state["user_id"]       = resp.user.id
+                    st.session_state["page"]          = "🏠 Dashboard"
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ {e}")
+        else:
+            if st.button("✨ S'inscrire", use_container_width=True):
+                try:
+                    supabase = get_supabase()
+                    resp = supabase.auth.sign_up({"email":email,"password":pwd})
+                    st.success("✅ Compte créé ! Vérifiez votre email.")
+                except Exception as e:
+                    st.error(f"❌ {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN
+# ═══════════════════════════════════════════════════════════════════════════════
+def main():
+    inject_css()
+
+    if "authenticated" not in st.session_state:
+        st.session_state["authenticated"] = False
+    if "page" not in st.session_state:
+        st.session_state["page"] = "🏠 Dashboard"
+    if "selected_facture_idx" not in st.session_state:
+        st.session_state["selected_facture_idx"] = None
+
+    if not st.session_state["authenticated"]:
+        show_login()
+        return
+
+    current_page = st.session_state.get("page", "🏠 Dashboard")
+    render_topnav(current_page)
+
+    if current_page == "🏠 Dashboard":
+        show_dashboard()
+    elif current_page == "📄 Factures":
+        show_factures()
+    elif current_page == "🧾 Notes de frais":
+        show_notes_frais()
+    elif current_page == "📊 Comptabilité":
+        show_comptabilite()
+    elif current_page == "🤖 Assistant IA":
+        show_assistant()
+
+if __name__ == "__main__":
+    main()
+
