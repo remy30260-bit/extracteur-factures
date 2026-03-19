@@ -77,7 +77,7 @@ def pdf_to_image(pdf_bytes):
 
 def analyze_invoice(file_bytes, file_type):
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         if file_type == "application/pdf":
             img = pdf_to_image(file_bytes)
         else:
