@@ -532,14 +532,80 @@ Réponds en français, de façon concise et utile, avec des emojis 🐾."""
                     st.error(f"❌ Erreur : {e}")
 
     # ── Colonne droite : métriques + tableau ────────────────────────────────
+        # ── Colonne droite : métriques + tableau ────────────────────────────────
     with col2:
         if st.session_state["factures"]:
             df = pd.DataFrame(st.session_state["factures"])
 
-            total_ttc = df["montant_ttc"].sum() if "montant_ttc" in df.columns else 0
-            total_ht = df["montant_ht"].sum() if "montant_ht" in df.columns else 0
-            total_tva = df["tva"].sum() if "tva" in df.columns else 0
-            nb_factures = len(df)
+            # ── Sélection de la facture prévisualisée ──
+            selected_file = None
+            filenames = list(st.session_state["uploaded_files_data"].keys())
+            if filenames:
+                if "selected_preview" not in st.session_state:
+                    st.session_state["selected_preview"] = filenames[0]
+                selected_file = st.session_state.get("selected_preview", filenames[0])
+
+            # ── Tableau avec cases à cocher ──
+            st.markdown('<div class="section-title">📋 Tableau des factures</div>', unsafe_allow_html=True)
+
+            # Ajouter colonne sélection
+            if "selected_rows" not in st.session_state:
+                st.session_state["selected_rows"] = {}
+
+            cols_display = ["filename", "fournisseur", "date", "montant_ht", "tva", "montant_ttc", "categorie", "statut"]
+            cols_present = [c for c in cols_display if c in df.columns]
+            df_display = df[cols_present].copy()
+
+            # Ajouter colonne checkbox
+            df_display.insert(0, "✅ Sélect.", [
+                st.session_state["selected_rows"].get(row["filename"], False)
+                for _, row in df[cols_present].iterrows()
+            ])
+
+            edited_df = st.data_editor(
+                df_display,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "✅ Sélect.": st.column_config.CheckboxColumn("✅", default=False),
+                    "statut": st.column_config.SelectboxColumn(
+                        "Statut",
+                        options=["Validé 😸", "À vérifier 🐱", "Erreur 🙀", "En attente 😺"]
+                    ),
+                    "categorie": st.column_config.SelectboxColumn(
+                        "Catégorie",
+                        options=["Transport 🚗", "Repas 🍽️", "Hébergement 🏨",
+                                 "Fournitures 📦", "Formation 🎓", "Client 🤝", "Autres"]
+                    )
+                }
+            )
+
+            # Mettre à jour les sélections
+            for i, row in edited_df.iterrows():
+                fname = df_display.iloc[i]["filename"] if "filename" in df_display.columns else None
+                if fname:
+                    st.session_state["selected_rows"][fname] = row["✅ Sélect."]
+
+            # ── Métriques dynamiques ──
+            selected_files = [fname for fname, checked in st.session_state["selected_rows"].items() if checked]
+
+            # Si aucune case cochée → montrer la facture prévisualisée
+            if not selected_files and selected_file:
+                df_metrics = df[df["filename"] == selected_file]
+                mode_label = f"📄 {selected_file}"
+            elif selected_files:
+                df_metrics = df[df["filename"].isin(selected_files)]
+                mode_label = f"✅ {len(selected_files)} facture(s) sélectionnée(s)"
+            else:
+                df_metrics = df
+                mode_label = "📊 Toutes les factures"
+
+            total_ttc = df_metrics["montant_ttc"].sum() if "montant_ttc" in df_metrics.columns else 0
+            total_ht  = df_metrics["montant_ht"].sum()  if "montant_ht"  in df_metrics.columns else 0
+            total_tva = df_metrics["tva"].sum()          if "tva"         in df_metrics.columns else 0
+            nb_factures = len(df_metrics)
+
+            st.markdown(f"<p style='color:#c8956c; font-size:0.85rem; text-align:center;'>Mode : <b>{mode_label}</b></p>", unsafe_allow_html=True)
 
             c1, c2 = st.columns(2)
             with c1:
@@ -576,6 +642,63 @@ Réponds en français, de façon concise et utile, avec des emojis 🐾."""
                 """, unsafe_allow_html=True)
 
             st.markdown("<br>", unsafe_allow_html=True)
+
+            # ── Bouton tout sélectionner / désélectionner ──
+            col_sel1, col_sel2 = st.columns(2)
+            with col_sel1:
+                if st.button("☑️ Tout sélectionner", use_container_width=True):
+                    for fname in df["filename"].tolist():
+                        st.session_state["selected_rows"][fname] = True
+                    st.rerun()
+            with col_sel2:
+                if st.button("⬜ Tout désélectionner", use_container_width=True):
+                    st.session_state["selected_rows"] = {}
+                    st.rerun()
+
+            st.markdown("---")
+
+            col_act1, col_act2, col_act3 = st.columns(3)
+
+            with col_act1:
+                buffer = io.BytesIO()
+                df.to_excel(buffer, index=False, engine="openpyxl")
+                buffer.seek(0)
+                st.download_button(
+                    label="📥 Exporter Excel",
+                    data=buffer,
+                    file_name=f"factures_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
+
+            with col_act2:
+                csv_data = df.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="📄 Exporter CSV",
+                    data=csv_data,
+                    file_name=f"factures_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+
+            with col_act3:
+                if st.button("🗑️ Effacer tout", use_container_width=True, key="clear_factures"):
+                    st.session_state["factures"] = []
+                    st.session_state["uploaded_files_data"] = {}
+                    st.session_state["selected_rows"] = {}
+                    st.rerun()
+
+        else:
+            st.markdown(f"""
+            <div style="text-align:center; padding:4rem 0;">
+                <div class="cat-ascii" style="font-size:1rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
+                <p style="font-size:1.3rem; font-weight:800; color:#a0522d; margin-top:1rem;">
+                    Aucune facture importée !
+                </p>
+                <p style="color:#c8956c;">Glissez vos factures à gauche pour commencer 🐾</p>
+            </div>
+            """, unsafe_allow_html=True)
+
 
             # Tableau
             st.markdown('<div class="section-title">📋 Tableau des factures</div>', unsafe_allow_html=True)
