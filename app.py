@@ -1257,6 +1257,6 @@ else:
 
 # ─── FOOTER ───────────────────────────────────────────────────────────────────
 st.markdown("---")
-st.markdown("""
+st.markdown(""")
 <div style="text-align:center; padding:1rem 0;">
     <p style="font-weight:900;color:#a0522d;font-size:1
