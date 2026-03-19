@@ -73,7 +73,7 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 * { font-family: 'Nunito', sans-serif; }
 
-[data-testid="stSidebar"]      { display: none; }
+[data-testid="stSidebar"]       { display: none; }
 [data-testid="collapsedControl"]{ display: none; }
 
 .stApp {
@@ -159,8 +159,6 @@ st.markdown("""
     line-height: 1.3 !important;
     color: #a0522d;
 }
-
-/* ── Modale plein écran ── */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -200,7 +198,6 @@ st.markdown("""
     object-fit: contain;
     border-radius: 8px;
 }
-
 [data-testid="stFileUploader"] {
     background: white;
     border: 2px dashed #f0a070;
@@ -236,13 +233,11 @@ if "page" not in st.session_state:
 
 col_n1, col_n2, col_n3, col_n4 = st.columns([1, 2, 2, 1])
 with col_n2:
-    if st.button("📄 Factures", use_container_width=True,
-                 type="primary" if st.session_state["page"] == "📄 Factures" else "secondary"):
+    if st.button("📄 Factures", use_container_width=True):
         st.session_state["page"] = "📄 Factures"
         st.rerun()
 with col_n3:
-    if st.button("💰 Notes de frais", use_container_width=True,
-                 type="primary" if st.session_state["page"] == "💰 Notes de frais" else "secondary"):
+    if st.button("💰 Notes de frais", use_container_width=True):
         st.session_state["page"] = "💰 Notes de frais"
         st.rerun()
 with col_n4:
@@ -289,9 +284,9 @@ def extract_pdf_images(pdf_bytes):
         images.append(img)
     return images
 
-def image_to_bytes(img, format="PNG"):
+def image_to_bytes(img, fmt="PNG"):
     buf = io.BytesIO()
-    img.save(buf, format=format)
+    img.save(buf, format=fmt)
     return buf.getvalue()
 
 def img_to_base64(img):
@@ -301,7 +296,6 @@ def img_to_base64(img):
     return base64.b64encode(buf.getvalue()).decode()
 
 def pdf_bytes_to_base64_pages(pdf_bytes):
-    """Convertit toutes les pages d'un PDF en liste de base64 PNG."""
     import base64
     images = extract_pdf_images(pdf_bytes)
     return [base64.b64encode(image_to_bytes(img)).decode() for img in images]
@@ -310,10 +304,10 @@ def raw_bytes_to_base64(raw_bytes):
     import base64
     return base64.b64encode(raw_bytes).decode()
 
-def analyze_invoice(file_bytes, file_type, filename=""):
+def analyze_invoice(file_bytes, file_type):
     prompt = """Tu es FactureCat 🐱, un expert comptable félin. Analyse cette facture et extrais ces informations en JSON strict :
 {
-  "fournisseur": "nom du fournisseur",
+  "fournisseur": "nom du fournisseur/émetteur de la facture (pas le client)",
   "date": "date au format JJ/MM/AAAA",
   "numero_facture": "numéro de facture",
   "montant_ht": 0.00,
@@ -324,6 +318,7 @@ def analyze_invoice(file_bytes, file_type, filename=""):
   "categorie": "Transport/Repas/Hébergement/Fournitures/Formation/Client/Autres",
   "statut": "Validé 😸 ou À vérifier 🐱 ou Erreur 🙀"
 }
+IMPORTANT: "fournisseur" = celui qui émet la facture, pas le destinataire.
 Réponds UNIQUEMENT avec le JSON, sans texte avant ou après."""
 
     try:
@@ -353,18 +348,10 @@ Réponds UNIQUEMENT avec le JSON, sans texte avant ou après."""
         st.error(f"❌ Erreur analyse : {e}")
         return None
 
-# ════════════════════════════════════════════════════════════════════════════
-# HELPER : rendu prévisualisation + modale agrandissable
-# ════════════════════════════════════════════════════════════════════════════
-def render_preview(file_bytes, file_type, selected_file, zoom_level=100):
-    """
-    Affiche la prévisualisation avec :
-    - Slider de zoom
-    - Bouton 🔍 plein écran (modale HTML/JS)
-    """
+# ─── HELPER PREVIEW ───────────────────────────────────────────────────────────
+def render_preview(file_bytes, file_type, selected_file):
     import base64
 
-    # ── Construire les pages en base64 ──
     pages_b64 = []
     if file_type == "application/pdf":
         pages_b64 = pdf_bytes_to_base64_pages(file_bytes)
@@ -375,86 +362,157 @@ def render_preview(file_bytes, file_type, selected_file, zoom_level=100):
         st.warning("Impossible de prévisualiser ce fichier.")
         return
 
-    # ── Slider zoom ──
-    zoom = st.slider("🔎 Zoom", min_value=50, max_value=200,
-                     value=zoom_level, step=10, format="%d%%",
-                     key=f"zoom_{selected_file}")
-
-    width_px = int(zoom * 6)  # 100% → 600px, 200% → 1200px
-
-    # ── Générer le HTML des pages ──
+    # Zoom via HTML/JS interne — pas de slider Streamlit
+    modal_html = ""
     pages_html = ""
+
     for i, b64 in enumerate(pages_b64):
-        page_label = f"<p style='color:#c8956c;font-size:0.75rem;margin:0.3rem 0;'>Page {i+1}/{len(pages_b64)}</p>" \
-                     if len(pages_b64) > 1 else ""
+        page_id    = f"pg_{selected_file.replace('.','_')}_{i}"
+        modal_id   = f"modal_{selected_file.replace('.','_')}_{i}"
+        page_label = (f"<p style='color:#c8956c;font-size:0.75rem;margin:0.3rem 0;'>"
+                      f"Page {i+1}/{len(pages_b64)}</p>") if len(pages_b64) > 1 else ""
+
         pages_html += f"""
         {page_label}
-        <img src="data:image/png;base64,{b64}"
-             style="width:{width_px}px; max-width:100%; border-radius:8px;
-                    box-shadow:0 4px 15px rgba(0,0,0,0.15); margin-bottom:0.5rem;"
-             onclick="openModal('modal_{selected_file}_{i}')" 
-             title="Cliquez pour agrandir 🔍"
-             class="preview-img"/>
+        <img id="{page_id}"
+             src="data:image/png;base64,{b64}"
+             style="width:100%; border-radius:8px;
+                    box-shadow:0 4px 15px rgba(0,0,0,0.15);
+                    margin-bottom:0.5rem; cursor:zoom-in;
+                    transition: transform 0.2s ease;"
+             onclick="openModal('{modal_id}')"
+             title="Cliquez pour agrandir 🔍"/>
         """
 
-    # ── Générer les modales plein écran ──
-    modals_html = ""
-    for i, b64 in enumerate(pages_b64):
-        modals_html += f"""
-        <div id="modal_{selected_file}_{i}" class="modal-overlay" onclick="closeModal(this)">
+        modal_html += f"""
+        <div id="{modal_id}" class="modal-overlay" onclick="closeModal('{modal_id}')">
             <div class="modal-content" onclick="event.stopPropagation()">
-                <button class="modal-close" onclick="closeModal(document.getElementById('modal_{selected_file}_{i}'))">✕</button>
+                <button class="modal-close"
+                        onclick="closeModal('{modal_id}')">✕</button>
                 <p style="color:#a0522d;font-weight:800;margin-bottom:0.5rem;">
-                    📄 {selected_file} {"— Page " + str(i+1) if len(pages_b64) > 1 else ""}
+                    📄 {selected_file}{"&nbsp;— Page " + str(i+1) if len(pages_b64) > 1 else ""}
                 </p>
-                <img src="data:image/png;base64,{b64}" class="modal-img"/>
+                <!-- Zoom controls dans la modale -->
+                <div style="display:flex;gap:0.5rem;margin-bottom:0.8rem;align-items:center;">
+                    <button onclick="zoomImg('{modal_id}_img', -10)"
+                            style="background:#f0a070;border:none;border-radius:8px;
+                                   color:white;padding:0.3rem 0.8rem;font-size:1.1rem;
+                                   cursor:pointer;font-weight:700;">−</button>
+                    <span id="{modal_id}_pct"
+                          style="color:#a0522d;font-weight:700;min-width:50px;text-align:center;">
+                          100%</span>
+                    <button onclick="zoomImg('{modal_id}_img', +10)"
+                            style="background:#f0a070;border:none;border-radius:8px;
+                                   color:white;padding:0.3rem 0.8rem;font-size:1.1rem;
+                                   cursor:pointer;font-weight:700;">+</button>
+                    <button onclick="resetZoom('{modal_id}_img', '{modal_id}_pct')"
+                            style="background:#c8956c;border:none;border-radius:8px;
+                                   color:white;padding:0.3rem 0.8rem;font-size:0.85rem;
+                                   cursor:pointer;font-weight:700;">Reset</button>
+                </div>
+                <div style="overflow:auto;max-height:75vh;">
+                    <img id="{modal_id}_img"
+                         src="data:image/png;base64,{b64}"
+                         style="width:100%;border-radius:8px;"
+                         data-zoom="100"/>
+                </div>
             </div>
         </div>
         """
 
-    # ── JS ──
-    js = """
-    <script>
-    function openModal(id) {
-        document.getElementById(id).classList.add('open');
-    }
-    function closeModal(el) {
-        el.classList.remove('open');
-    }
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            document.querySelectorAll('.modal-overlay.open').forEach(function(m) {
-                m.classList.remove('open');
-            });
-        }
-    });
-    </script>
-    """
-
-    # ── Conteneur scrollable ──
-    container_html = f"""
-    <div style="
-        max-height: 70vh;
+    full_html = f"""
+    <style>
+    .modal-overlay {{
+        display: none;
+        position: fixed;
+        top:0;left:0;right:0;bottom:0;
+        background: rgba(0,0,0,0.88);
+        z-index: 99999;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+    }}
+    .modal-overlay.open {{ display: flex; }}
+    .modal-content {{
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        max-width: 92vw;
+        max-height: 92vh;
         overflow-y: auto;
-        overflow-x: auto;
+        position: relative;
+        min-width: 300px;
+    }}
+    .modal-close {{
+        position: absolute;
+        top: 0.8rem; right: 0.8rem;
+        background: #f0a070;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 34px; height: 34px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        font-weight: 900;
+        z-index: 100001;
+    }}
+    </style>
+
+    <div style="
+        max-height: 65vh;
+        overflow-y: auto;
+        overflow-x: hidden;
         background: #fdf6f0;
         border: 2px solid rgba(200,149,108,0.3);
         border-radius: 16px;
         padding: 1rem;
-        cursor: zoom-in;
     ">
         {pages_html}
     </div>
-    <p style="color:#c8956c; font-size:0.75rem; margin-top:0.4rem; text-align:center;">
-        💡 Cliquez sur la facture pour l'agrandir en plein écran
+    <p style="color:#c8956c;font-size:0.75rem;margin-top:0.4rem;text-align:center;">
+        💡 Cliquez sur la facture → plein écran avec zoom +/−
     </p>
-    {modals_html}
-    {js}
+
+    {modal_html}
+
+    <script>
+    var _zooms = {{}};
+
+    function openModal(id) {{
+        document.getElementById(id).classList.add('open');
+    }}
+    function closeModal(id) {{
+        document.getElementById(id).classList.remove('open');
+    }}
+    function zoomImg(imgId, delta) {{
+        var img = document.getElementById(imgId);
+        var pctId = imgId.replace('_img','_pct');
+        var pct   = _zooms[imgId] || 100;
+        pct = Math.min(Math.max(pct + delta * 5, 30), 400);
+        _zooms[imgId] = pct;
+        img.style.width = pct + '%';
+        var pctEl = document.getElementById(pctId);
+        if (pctEl) pctEl.textContent = pct + '%';
+    }}
+    function resetZoom(imgId, pctId) {{
+        var img = document.getElementById(imgId);
+        _zooms[imgId] = 100;
+        img.style.width = '100%';
+        var pctEl = document.getElementById(pctId);
+        if (pctEl) pctEl.textContent = '100%';
+    }}
+    document.addEventListener('keydown', function(e) {{
+        if (e.key === 'Escape') {{
+            document.querySelectorAll('.modal-overlay.open').forEach(function(m) {{
+                m.classList.remove('open');
+            }});
+        }}
+    }});
+    </script>
     """
 
-    st.components.v1.html(container_html, height=int(70 * 10 + 60), scrolling=False)
+    st.components.v1.html(full_html, height=720, scrolling=False)
 
-    # ── Bouton téléchargement ──
     st.download_button(
         label="📥 Télécharger",
         data=file_bytes,
@@ -470,14 +528,21 @@ def render_preview(file_bytes, file_type, selected_file, zoom_level=100):
 # ════════════════════════════════════════════════════════════════════════════
 if page == "📄 Factures":
 
-    if "factures"           not in st.session_state: st.session_state["factures"]           = []
-    if "chat_history"       not in st.session_state: st.session_state["chat_history"]       = []
-    if "uploaded_files_data" not in st.session_state: st.session_state["uploaded_files_data"] = {}
-    if "selected_rows"      not in st.session_state: st.session_state["selected_rows"]      = {}
-    if "selected_preview"   not in st.session_state: st.session_state["selected_preview"]   = None
+    for key, default in [
+        ("factures",            []),
+        ("chat_history",        []),
+        ("uploaded_files_data", {}),
+        ("selected_rows",       {}),
+        ("selected_preview",    None),
+        ("pending_files",       []),   # fichiers en attente d'analyse
+        ("chat_input_value",    ""),   # pour vider le champ chat
+    ]:
+        if key not in st.session_state:
+            st.session_state[key] = default
 
-    # ── Upload (pleine largeur) ───────────────────────────────────────────────
-    st.markdown('<div class="section-title">📤 Importer des factures</div>', unsafe_allow_html=True)
+    # ── Upload ────────────────────────────────────────────────────────────────
+    st.markdown('<div class="section-title">📤 Importer des factures</div>',
+                unsafe_allow_html=True)
 
     uploaded_files = st.file_uploader(
         "Glissez vos factures ici",
@@ -486,44 +551,66 @@ if page == "📄 Factures":
         label_visibility="collapsed"
     )
 
+    # Stocker les fichiers uploadés sans les analyser
     if uploaded_files:
-        for uploaded_file in uploaded_files:
-            already = any(f.get("filename") == uploaded_file.name
-                          for f in st.session_state["factures"])
-            if not already:
-                with st.spinner(f"🐱 Analyse de {uploaded_file.name}..."):
-                    file_bytes = uploaded_file.read()
-                    st.session_state["uploaded_files_data"][uploaded_file.name] = {
-                        "bytes": file_bytes,
-                        "type":  uploaded_file.type
-                    }
-                    result = analyze_invoice(file_bytes, uploaded_file.type, uploaded_file.name)
-                    if result:
-                        result["filename"] = uploaded_file.name
-                        result["id"]       = len(st.session_state["factures"])
-                        st.session_state["factures"].append(result)
-                        st.session_state["selected_preview"] = uploaded_file.name
-                        st.success(f"✅ {uploaded_file.name} analysée ! 🐾")
-                    else:
-                        st.error(f"❌ Échec pour {uploaded_file.name}")
-            else:
-                if uploaded_file.name not in st.session_state["uploaded_files_data"]:
-                    file_bytes = uploaded_file.read()
-                    st.session_state["uploaded_files_data"][uploaded_file.name] = {
-                        "bytes": file_bytes,
-                        "type":  uploaded_file.type
-                    }
+        new_files = False
+        for uf in uploaded_files:
+            if uf.name not in st.session_state["uploaded_files_data"]:
+                file_bytes = uf.read()
+                st.session_state["uploaded_files_data"][uf.name] = {
+                    "bytes": file_bytes,
+                    "type":  uf.type
+                }
+                # Ajouter aux fichiers en attente si pas encore analysé
+                already_analysed = any(f.get("filename") == uf.name
+                                       for f in st.session_state["factures"])
+                if not already_analysed and uf.name not in st.session_state["pending_files"]:
+                    st.session_state["pending_files"].append(uf.name)
+                    new_files = True
+
+        if new_files:
+            st.rerun()
+
+    # Afficher les fichiers en attente + bouton analyser
+    if st.session_state["pending_files"]:
+        pending_names = ", ".join(st.session_state["pending_files"])
+        st.info(f"📋 {len(st.session_state['pending_files'])} fichier(s) prêt(s) à analyser : {pending_names}")
+
+        col_btn1, col_btn2 = st.columns([2, 1])
+        with col_btn1:
+            if st.button("🐱 Lancer l'analyse IA", use_container_width=True, key="btn_analyse"):
+                for fname in list(st.session_state["pending_files"]):
+                    data = st.session_state["uploaded_files_data"].get(fname)
+                    if data:
+                        with st.spinner(f"🐱 Analyse de {fname}..."):
+                            result = analyze_invoice(data["bytes"], data["type"])
+                            if result:
+                                result["filename"] = fname
+                                result["id"]       = len(st.session_state["factures"])
+                                st.session_state["factures"].append(result)
+                                st.session_state["selected_preview"] = fname
+                                st.success(f"✅ {fname} analysée ! 🐾")
+                            else:
+                                st.error(f"❌ Échec pour {fname}")
+                        st.session_state["pending_files"].remove(fname)
+                st.rerun()
+        with col_btn2:
+            if st.button("🗑️ Annuler", use_container_width=True, key="btn_cancel_pending"):
+                for fname in list(st.session_state["pending_files"]):
+                    st.session_state["uploaded_files_data"].pop(fname, None)
+                st.session_state["pending_files"] = []
+                st.rerun()
 
     st.markdown("---")
 
     if st.session_state["factures"]:
 
-        # 3 colonnes : [prévisualisation large | données | métriques]
         col_prev, col_info, col_metrics = st.columns([1.6, 1.2, 1], gap="medium")
 
-        # ── COLONNE 1 : Prévisualisation ──────────────────────────────────────
+        # ── COL 1 : Prévisualisation ──────────────────────────────────────────
         with col_prev:
-            st.markdown('<div class="section-title">👁️ Prévisualisation</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">👁️ Prévisualisation</div>',
+                        unsafe_allow_html=True)
 
             filenames = list(st.session_state["uploaded_files_data"].keys())
 
@@ -543,59 +630,60 @@ if page == "📄 Factures":
                 st.session_state["selected_preview"] = selected_file
                 st.rerun()
 
-            if selected_file:
+            if selected_file and selected_file in st.session_state["uploaded_files_data"]:
                 file_data  = st.session_state["uploaded_files_data"][selected_file]
-                file_bytes = file_data["bytes"]
-                file_type  = file_data["type"]
+                render_preview(file_data["bytes"], file_data["type"], selected_file)
 
-                st.markdown(f"<p style='color:#c8956c; font-size:0.8rem;'>📄 {selected_file}</p>",
-                            unsafe_allow_html=True)
-
-                # ← Appel du helper avec zoom + modale
-                render_preview(file_bytes, file_type, selected_file, zoom_level=100)
-
-        # ── COLONNE 2 : Données extraites ─────────────────────────────────────
+        # ── COL 2 : Données extraites ─────────────────────────────────────────
         with col_info:
-            st.markdown('<div class="section-title">🧾 Données extraites</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">🧾 Données extraites</div>',
+                        unsafe_allow_html=True)
 
-            facture_selectionnee = next(
+            facture_sel = next(
                 (f for f in st.session_state["factures"]
                  if f.get("filename") == st.session_state["selected_preview"]),
                 None
             )
 
-            if facture_selectionnee:
+            if facture_sel:
                 champs = [
-                    ("🏢 Fournisseur",  facture_selectionnee.get("fournisseur", "—")),
-                    ("📅 Date",         facture_selectionnee.get("date", "—")),
-                    ("🔢 N° Facture",   facture_selectionnee.get("numero_facture", "—")),
-                    ("💶 Montant HT",   f"{facture_selectionnee.get('montant_ht', 0):.2f} €"),
-                    ("📊 TVA",          f"{facture_selectionnee.get('tva', 0):.2f} €"),
-                    ("💰 Montant TTC",  f"{facture_selectionnee.get('montant_ttc', 0):.2f} €"),
-                    ("💱 Devise",       facture_selectionnee.get("devise", "EUR")),
-                    ("📂 Catégorie",    facture_selectionnee.get("categorie", "—")),
-                    ("📋 Description",  facture_selectionnee.get("description", "—")),
-                    ("✅ Statut",       facture_selectionnee.get("statut", "—")),
+                    ("🏢 Fournisseur", facture_sel.get("fournisseur", "—")),
+                    ("📅 Date",        facture_sel.get("date", "—")),
+                    ("🔢 N° Facture",  facture_sel.get("numero_facture", "—")),
+                    ("💶 Montant HT",  f"{facture_sel.get('montant_ht', 0):.2f} €"),
+                    ("📊 TVA",         f"{facture_sel.get('tva', 0):.2f} €"),
+                    ("💰 Montant TTC", f"{facture_sel.get('montant_ttc', 0):.2f} €"),
+                    ("💱 Devise",      facture_sel.get("devise", "EUR")),
+                    ("📂 Catégorie",   facture_sel.get("categorie", "—")),
+                    ("📋 Description", facture_sel.get("description", "—")),
+                    ("✅ Statut",      facture_sel.get("statut", "—")),
                 ]
-
                 for label, valeur in champs:
                     st.markdown(f"""
-                    <div style="display:flex; justify-content:space-between; align-items:center;
-                                padding:0.5rem 0.8rem; margin-bottom:0.4rem;
-                                background:white; border-radius:10px;
+                    <div style="display:flex;justify-content:space-between;align-items:center;
+                                padding:0.5rem 0.8rem;margin-bottom:0.4rem;
+                                background:white;border-radius:10px;
                                 border:1px solid rgba(200,149,108,0.2);">
-                        <span style="color:#c8956c; font-size:0.82rem; font-weight:700;">{label}</span>
-                        <span style="color:#a0522d; font-size:0.85rem; font-weight:800;
-                                     max-width:55%; text-align:right;">{valeur}</span>
+                        <span style="color:#c8956c;font-size:0.82rem;font-weight:700;">{label}</span>
+                        <span style="color:#a0522d;font-size:0.85rem;font-weight:800;
+                                     max-width:55%;text-align:right;">{valeur}</span>
                     </div>
                     """, unsafe_allow_html=True)
             else:
-                st.info("Sélectionnez une facture 🐾")
+                # Facture uploadée mais pas encore analysée
+                if st.session_state["selected_preview"] in [
+                    f for f in st.session_state["uploaded_files_data"]
+                    if f in st.session_state["pending_files"]
+                ]:
+                    st.info("⏳ Facture en attente d'analyse — cliquez sur 'Lancer l'analyse IA' 🐾")
+                else:
+                    st.info("Sélectionnez une facture 🐾")
 
             st.markdown("<br>", unsafe_allow_html=True)
 
-            # ── Tableau toutes les factures ──
-            st.markdown('<div class="section-title">📋 Toutes les factures</div>', unsafe_allow_html=True)
+            # Tableau toutes factures
+            st.markdown('<div class="section-title">📋 Toutes les factures</div>',
+                        unsafe_allow_html=True)
 
             df = pd.DataFrame(st.session_state["factures"])
             cols_display = ["filename", "fournisseur", "date", "numero_facture",
@@ -603,7 +691,6 @@ if page == "📄 Factures":
             df_display = df[[c for c in cols_display if c in df.columns]].copy()
             df_display.insert(0, "✅", False)
 
-            # Pré-remplir les coches
             for fname in df_display["filename"]:
                 if fname not in st.session_state["selected_rows"]:
                     st.session_state["selected_rows"][fname] = False
@@ -622,7 +709,6 @@ if page == "📄 Factures":
                 key="table_factures"
             )
 
-            # Sync des sélections
             for i, row in edited_df.iterrows():
                 fname = df_display.iloc[i]["filename"]
                 if fname:
@@ -639,9 +725,10 @@ if page == "📄 Factures":
                     st.session_state["selected_rows"] = {}
                     st.rerun()
 
-        # ── COLONNE 3 : Métriques + Exports + Chat ────────────────────────────
+        # ── COL 3 : Métriques + Exports + Chat ───────────────────────────────
         with col_metrics:
-            st.markdown('<div class="section-title">📊 Métriques</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">📊 Métriques</div>',
+                        unsafe_allow_html=True)
 
             df = pd.DataFrame(st.session_state["factures"])
             selected_files = [fname for fname, checked
@@ -681,7 +768,8 @@ if page == "📄 Factures":
             st.markdown("---")
 
             # ── Exports ──
-            st.markdown('<div class="section-title">💾 Exports</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">💾 Exports</div>',
+                        unsafe_allow_html=True)
 
             buffer = io.BytesIO()
             df.to_excel(buffer, index=False, engine="openpyxl")
@@ -706,19 +794,22 @@ if page == "📄 Factures":
             )
 
             if st.button("🗑️ Effacer tout", use_container_width=True, key="clear_factures"):
-                st.session_state["factures"]            = []
-                st.session_state["uploaded_files_data"] = {}
-                st.session_state["selected_rows"]       = {}
-                st.session_state["selected_preview"]    = None
+                st.session_state["factures"]             = []
+                st.session_state["uploaded_files_data"]  = {}
+                st.session_state["selected_rows"]        = {}
+                st.session_state["selected_preview"]     = None
+                st.session_state["pending_files"]        = []
                 st.rerun()
 
             st.markdown("---")
 
-            # ── Chat ──
-            st.markdown('<div class="section-title">💬 FactureCat Chat</div>', unsafe_allow_html=True)
+            # ── Chat ─────────────────────────────────────────────────────────
+            st.markdown('<div class="section-title">💬 FactureCat Chat</div>',
+                        unsafe_allow_html=True)
 
-            chat_box = st.container()
-            with chat_box:
+            # Historique
+            chat_container = st.container()
+            with chat_container:
                 if not st.session_state["chat_history"]:
                     st.markdown(f"""
                     <div class="chat-bot">
@@ -729,18 +820,40 @@ if page == "📄 Factures":
                 else:
                     for msg in st.session_state["chat_history"][-6:]:
                         if msg["role"] == "user":
-                            st.markdown(f'<div class="chat-user">👤 {msg["content"]}</div>',
-                                        unsafe_allow_html=True)
+                            st.markdown(
+                                f'<div class="chat-user">👤 {msg["content"]}</div>',
+                                unsafe_allow_html=True)
                         else:
-                            st.markdown(f'<div class="chat-bot">🐱 {msg["content"]}</div>',
-                                        unsafe_allow_html=True)
+                            st.markdown(
+                                f'<div class="chat-bot">🐱 {msg["content"]}</div>',
+                                unsafe_allow_html=True)
 
-            user_input = st.text_input("Question...", key="chat_input",
-                                       placeholder="Ex: Total des factures ?")
+            # Input vidé après envoi via session_state key trick
+            if "chat_clear" not in st.session_state:
+                st.session_state["chat_clear"] = 0
 
-            if st.button("🐾 Envoyer", use_container_width=True, key="send_chat") and user_input:
-                st.session_state["chat_history"].append({"role": "user", "content": user_input})
-                factures_context = json.dumps(st.session_state["factures"], ensure_ascii=False, indent=2)
+            user_input = st.text_input(
+                "Question...",
+                placeholder="Ex: Total des factures ?",
+                key=f"chat_input_{st.session_state['chat_clear']}",
+                label_visibility="collapsed"
+            )
+
+            col_chat1, col_chat2 = st.columns([3, 1])
+            with col_chat1:
+                send = st.button("🐾 Envoyer", use_container_width=True, key="send_chat")
+            with col_chat2:
+                if st.button("🧹", use_container_width=True, key="clear_chat",
+                             help="Effacer le chat"):
+                    st.session_state["chat_history"] = []
+                    st.session_state["chat_clear"]  += 1
+                    st.rerun()
+
+            if send and user_input.strip():
+                st.session_state["chat_history"].append(
+                    {"role": "user", "content": user_input.strip()})
+                factures_context = json.dumps(
+                    st.session_state["factures"], ensure_ascii=False, indent=2)
                 prompt_chat = f"""Tu es FactureCat 🐱, expert comptable félin.
 Factures : {factures_context}
 Question : {user_input}
@@ -748,23 +861,28 @@ Réponds en français, concis, avec des emojis 🐾."""
                 with st.spinner("🐱 Réflexion..."):
                     try:
                         response = model.generate_content(prompt_chat)
-                        st.session_state["chat_history"].append({
-                            "role": "assistant", "content": response.text
-                        })
+                        st.session_state["chat_history"].append(
+                            {"role": "assistant", "content": response.text})
+                        # Vider le champ en changeant la clé
+                        st.session_state["chat_clear"] += 1
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ Erreur : {e}")
 
     else:
-        st.markdown(f"""
-        <div style="text-align:center; padding:4rem 0;">
-            <div class="cat-ascii" style="font-size:1rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
-            <p style="font-size:1.3rem; font-weight:800; color:#a0522d; margin-top:1rem;">
-                Aucune facture importée !
-            </p>
-            <p style="color:#c8956c;">Glissez vos factures ci-dessus pour commencer 🐾</p>
-        </div>
-        """, unsafe_allow_html=True)
+        # Aucune facture analysée — afficher chat vide seulement si des fichiers
+        # sont en attente, sinon le grand chat
+        if not st.session_state.get("pending_files"):
+            st.markdown(f"""
+            <div style="text-align:center; padding:4rem 0;">
+                <div class="cat-ascii" style="font-size:1rem !important;">
+                    {ascii_to_html(CAT_ASCII_GRAND)}</div>
+                <p style="font-size:1.3rem;font-weight:800;color:#a0522d;margin-top:1rem;">
+                    Aucune facture importée !
+                </p>
+                <p style="color:#c8956c;">Glissez vos factures ci-dessus pour commencer 🐾</p>
+            </div>
+            """, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════
 # PAGE NOTES DE FRAIS
@@ -777,7 +895,8 @@ elif page == "💰 Notes de frais":
     col1, col2 = st.columns([1, 1], gap="large")
 
     with col1:
-        st.markdown('<div class="section-title">➕ Ajouter une dépense</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">➕ Ajouter une dépense</div>',
+                    unsafe_allow_html=True)
 
         with st.form("form_note_frais", clear_on_submit=True):
             date_depense = st.date_input("📅 Date", datetime.now())
@@ -785,7 +904,8 @@ elif page == "💰 Notes de frais":
 
             col_f1, col_f2 = st.columns(2)
             with col_f1:
-                montant = st.number_input("💰 Montant (€)", min_value=0.0, step=0.01, format="%.2f")
+                montant = st.number_input("💰 Montant (€)", min_value=0.0,
+                                          step=0.01, format="%.2f")
             with col_f2:
                 categorie = st.selectbox("📂 Catégorie", [
                     "Transport 🚗", "Repas 🍽️", "Hébergement 🏨",
@@ -806,8 +926,8 @@ elif page == "💰 Notes de frais":
                                             type=["pdf", "png", "jpg", "jpeg"])
             notes = st.text_area("📌 Notes", height=80)
 
-            submitted = st.form_submit_button("🐾 Ajouter la dépense", use_container_width=True)
-
+            submitted = st.form_submit_button("🐾 Ajouter la dépense",
+                                              use_container_width=True)
             if submitted:
                 if not description:
                     st.error("❌ La description est obligatoire !")
@@ -815,15 +935,15 @@ elif page == "💰 Notes de frais":
                     st.error("❌ Le montant doit être supérieur à 0 !")
                 else:
                     note = {
-                        "id":               len(st.session_state["notes_frais"]),
-                        "Date":             date_depense.strftime("%d/%m/%Y"),
-                        "Description":      description,
-                        "Montant (€)":      montant,
-                        "Catégorie":        categorie,
+                        "id":                len(st.session_state["notes_frais"]),
+                        "Date":              date_depense.strftime("%d/%m/%Y"),
+                        "Description":       description,
+                        "Montant (€)":       montant,
+                        "Catégorie":         categorie,
                         "Moyen de paiement": moyen_paiement,
-                        "Statut":           statut,
-                        "Justificatif":     justificatif.name if justificatif else "Aucun",
-                        "Notes":            notes
+                        "Statut":            statut,
+                        "Justificatif":      justificatif.name if justificatif else "Aucun",
+                        "Notes":             notes
                     }
                     st.session_state["notes_frais"].append(note)
                     st.success(f"✅ Dépense ajoutée ! 🐾 ({montant:.2f} €)")
@@ -831,7 +951,8 @@ elif page == "💰 Notes de frais":
 
         if st.session_state["notes_frais"]:
             st.markdown("---")
-            st.markdown('<div class="section-title">🤖 Analyse IA</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">🤖 Analyse IA</div>',
+                        unsafe_allow_html=True)
             if st.button("🐱 Analyser avec l'IA", use_container_width=True):
                 with st.spinner("🐱 Analyse en cours..."):
                     try:
@@ -855,7 +976,8 @@ Réponds en français avec des emojis 🐾."""
             total_depenses = df_nf["Montant (€)"].sum() if "Montant (€)" in df_nf.columns else 0
             nb_depenses    = len(df_nf)
 
-            st.markdown('<div class="section-title">📊 Tableau des dépenses</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">📊 Tableau des dépenses</div>',
+                        unsafe_allow_html=True)
 
             m1, m2 = st.columns(2)
             with m1:
@@ -923,8 +1045,9 @@ Réponds en français avec des emojis 🐾."""
         else:
             st.markdown(f"""
             <div style="text-align:center; padding:4rem 0;">
-                <div class="cat-ascii" style="font-size:1rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
-                <p style="font-size:1.3rem; font-weight:800; color:#a0522d; margin-top:1rem;">
+                <div class="cat-ascii" style="font-size:1rem !important;">
+                    {ascii_to_html(CAT_ASCII_GRAND)}</div>
+                <p style="font-size:1.3rem;font-weight:800;color:#a0522d;margin-top:1rem;">
                     Aucune dépense ajoutée !
                 </p>
                 <p style="color:#c8956c;">Ajoutez vos dépenses à gauche pour commencer 🐾</p>
