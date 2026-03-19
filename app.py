@@ -1312,4 +1312,4 @@ elif page == "💰 Notes de frais":
                     unsafe_allow_html=True)
             with m2:
                 st.markdown(f"""<div class="metric-card">
-                    <div class="metric-value">{nb_
+                    <div class="metric-value">{nb_}
