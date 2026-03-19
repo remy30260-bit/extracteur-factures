@@ -752,22 +752,24 @@ Réponds en français, de façon concise et utile, avec des emojis 🐾."""
                     use_container_width=True
                 )
 
-            with col_act3:
+                        with col_act3:
                 if st.button("🗑️ Effacer tout", use_container_width=True, key="clear_factures"):
                     st.session_state["factures"] = []
                     st.session_state["uploaded_files_data"] = {}
+                    st.session_state["selected_rows"] = {}
                     st.rerun()
 
-        else:
-            st.markdown(f"""
-            <div style="text-align:center; padding:4rem 0;">
-                <div class="cat-ascii" style="font-size:1rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
-                <p style="font-size:1.3rem; font-weight:800; color:#a0522d; margin-top:1rem;">
-                    Aucune facture importée !
-                </p>
-                <p style="color:#c8956c;">Glissez vos factures à gauche pour commencer 🐾</p>
-            </div>
-            """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div style="text-align:center; padding:4rem 0;">
+            <div class="cat-ascii" style="font-size:1rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
+            <p style="font-size:1.3rem; font-weight:800; color:#a0522d; margin-top:1rem;">
+                Aucune facture importée !
+            </p>
+            <p style="color:#c8956c;">Glissez vos factures à gauche pour commencer 🐾</p>
+        </div>
+        """, unsafe_allow_html=True)
+
 
 # ─── PAGE NOTES DE FRAIS ──────────────────────────────────────────────────────
 elif page == "💰 Notes de frais":
