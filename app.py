@@ -106,7 +106,11 @@ Réponds UNIQUEMENT avec le JSON."""
 def render_chat_widget(notes_frais_data=None):
     notes_json = json.dumps(notes_frais_data or [])
     html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
     <style>
+    body {{ margin:0; padding:0; background:transparent; }}
     #fab{{
         position:fixed;bottom:2rem;right:2rem;width:60px;height:60px;
         border-radius:50%;background:linear-gradient(135deg,#f0a070,#e07040);
@@ -163,6 +167,8 @@ def render_chat_widget(notes_frais_data=None):
         display:flex;align-items:center;justify-content:center;
     }}
     </style>
+    </head>
+    <body>
     <button id="fab" onclick="toggleChat()">🐱</button>
     <div id="chatbox">
         <div id="chat-header">😻 FactureCat Assistant</div>
@@ -243,8 +249,11 @@ def render_chat_widget(notes_frais_data=None):
         return replies[Math.floor(Math.random()*replies.length)];
     }}
     </script>
+    </body>
+    </html>
     """
-    components.html(html, height=0)
+    # ✅ height=600 pour que le widget flottant soit visible !
+    components.html(html, height=600, scrolling=False)
 
 # CSS GLOBAL
 st.markdown("""
@@ -473,6 +482,27 @@ if st.session_state["page"] == "Factures":
                 key="editor_factures"
             )
             st.session_state["factures"] = edited.to_dict("records")
+
+            # ✅ VISUALISATION FACTURE SÉLECTIONNÉE
+            st.markdown("---")
+            st.markdown('<div class="section-title">🖼️ Aperçu de la facture</div>', unsafe_allow_html=True)
+            preview_name = st.session_state.get("selected_preview")
+            if preview_name:
+                file_data = st.session_state["uploaded_files_data"].get(preview_name)
+                if file_data:
+                    try:
+                        if file_data["type"] == "application/pdf":
+                            img = pdf_to_image(file_data["bytes"])
+                        else:
+                            img = Image.open(io.BytesIO(file_data["bytes"]))
+                        st.image(img, caption=preview_name, use_container_width=True)
+                    except Exception as e:
+                        st.warning(f"Aperçu indisponible : {e}")
+                else:
+                    st.info("🐱 Aucun fichier trouvé pour cet aperçu.")
+            else:
+                st.info("🐱 Sélectionnez une facture pour voir l'aperçu.")
+
         else:
             st.markdown("""
             <div style="text-align:center;padding:5rem 0;">
@@ -655,5 +685,5 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Chat flottant
+# ✅ Chat flottant - height=600 pour qu'il soit visible et flottant !
 render_chat_widget(st.session_state.get("notes_frais", []))
