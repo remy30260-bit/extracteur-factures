@@ -26,7 +26,7 @@ def configure_gemini():
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
-        return genai.GenerativeModel("gemini-1.5-flash")
+        return genai.GenerativeModel("gemini-2.5-flash-preview-05-14")
     except Exception as e:
         return None
 
