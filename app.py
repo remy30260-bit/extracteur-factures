@@ -335,7 +335,7 @@ def ascii_to_html(ascii_art):
 # ─── GEMINI ───────────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_gemini():
-    genai.configure(api_key=st.secrets["gemini"]["api_key"])
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     return genai.GenerativeModel("gemini-1.5-flash")
 
 model = get_gemini()
