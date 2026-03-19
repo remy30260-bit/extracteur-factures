@@ -84,23 +84,19 @@ st.markdown("""
 
 * { font-family: 'Nunito', sans-serif; }
 
-/* Cache la sidebar */
 [data-testid="stSidebar"] { display: none; }
 [data-testid="collapsedControl"] { display: none; }
 
-/* Fond général */
 .stApp {
     background: linear-gradient(135deg, #fdf6f0 0%, #faebd7 50%, #fdf6f0 100%);
 }
 
-/* Décale le contenu sous la topbar */
 .main .block-container {
     padding-top: 7rem !important;
     padding-left: 2rem !important;
     padding-right: 2rem !important;
 }
 
-/* Topbar fixe */
 .topbar {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -113,7 +109,6 @@ st.markdown("""
     box-shadow: 0 4px 20px rgba(160,82,45,0.3);
 }
 
-/* Boutons navigation - style de base (secondary) */
 .stButton > button {
     background: white !important;
     color: #a0522d !important;
@@ -132,7 +127,6 @@ st.markdown("""
     box-shadow: 0 4px 15px rgba(200,149,108,0.4) !important;
 }
 
-/* Bouton actif (primary) */
 .stButton > button[kind="primary"] {
     background: linear-gradient(135deg, #f0a070, #e8856a) !important;
     color: white !important;
@@ -144,7 +138,6 @@ st.markdown("""
     box-shadow: 0 6px 20px rgba(200,149,108,0.6) !important;
 }
 
-/* Cards */
 .card {
     background: white;
     border-radius: 20px;
@@ -154,7 +147,6 @@ st.markdown("""
     margin-bottom: 1rem;
 }
 
-/* Métriques */
 .metric-card {
     background: linear-gradient(135deg, #fff9f5, #fdf0e8);
     border: 2px solid rgba(200,149,108,0.3);
@@ -176,7 +168,6 @@ st.markdown("""
     letter-spacing: 0.05em;
 }
 
-/* Chat */
 .chat-user {
     background: linear-gradient(135deg, #f0a070, #e8856a);
     color: white;
@@ -197,19 +188,11 @@ st.markdown("""
     box-shadow: 0 4px 15px rgba(160,82,45,0.1);
 }
 
-/* Badge statut */
-.badge {
-    display: inline-block;
-    padding: 0.2rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 700;
-}
+.badge { display: inline-block; padding: 0.2rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
 .badge-ok { background: #d4edda; color: #155724; }
 .badge-warn { background: #fff3cd; color: #856404; }
 .badge-error { background: #f8d7da; color: #721c24; }
 
-/* Titre section */
 .section-title {
     font-size: 1.4rem;
     font-weight: 800;
@@ -219,7 +202,6 @@ st.markdown("""
     border-bottom: 3px solid #f0a070;
 }
 
-/* Upload zone */
 [data-testid="stFileUploader"] {
     background: white;
     border: 2px dashed #f0a070;
@@ -227,7 +209,6 @@ st.markdown("""
     padding: 1rem;
 }
 
-/* Cat ASCII */
 .cat-ascii {
     font-family: monospace;
     font-size: 0.7rem !important;
@@ -236,7 +217,6 @@ st.markdown("""
     white-space: pre;
 }
 
-/* Inputs */
 .stTextInput > div > div > input,
 .stSelectbox > div > div,
 .stNumberInput > div > div > input,
@@ -250,10 +230,8 @@ st.markdown("""
     box-shadow: 0 0 0 3px rgba(240,160,112,0.2) !important;
 }
 
-/* Séparateur */
 hr { border-color: rgba(200,149,108,0.3) !important; }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: #fdf6f0; }
 ::-webkit-scrollbar-thumb {
@@ -261,11 +239,18 @@ hr { border-color: rgba(200,149,108,0.3) !important; }
     border-radius: 4px;
 }
 
-/* Dataframe */
 [data-testid="stDataFrame"] {
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid rgba(200,149,108,0.2);
+}
+
+.preview-container {
+    background: #fdf6f0;
+    border: 2px solid rgba(200,149,108,0.3);
+    border-radius: 16px;
+    padding: 1rem;
+    margin-top: 1rem;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -404,13 +389,15 @@ if page == "📄 Factures":
         st.session_state["factures"] = []
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
+    if "uploaded_files_data" not in st.session_state:
+        st.session_state["uploaded_files_data"] = {}
 
     col1, col2 = st.columns([1, 1], gap="large")
 
-    # ── Colonne gauche : upload + chat ──────────────────────────────────────
+    # ── Colonne gauche : upload + prévisualisation + chat ───────────────────
     with col1:
-        # Upload
-        st.markdown('<div class="card">', unsafe_allow_html=True)
+
+        # ── Upload ──
         st.markdown('<div class="section-title">📤 Importer des factures</div>', unsafe_allow_html=True)
 
         uploaded_files = st.file_uploader(
@@ -427,6 +414,11 @@ if page == "📄 Factures":
                 if not already:
                     with st.spinner(f"🐱 Analyse de {uploaded_file.name}..."):
                         file_bytes = uploaded_file.read()
+                        # Stocker les bytes pour prévisualisation
+                        st.session_state["uploaded_files_data"][uploaded_file.name] = {
+                            "bytes": file_bytes,
+                            "type": uploaded_file.type
+                        }
                         result = analyze_invoice(file_bytes, uploaded_file.type, uploaded_file.name)
                         if result:
                             result["filename"] = uploaded_file.name
@@ -435,11 +427,63 @@ if page == "📄 Factures":
                             st.success(f"✅ {uploaded_file.name} analysée ! 🐾")
                         else:
                             st.error(f"❌ Échec pour {uploaded_file.name}")
+                else:
+                    # Mettre à jour les bytes si le fichier existe déjà
+                    if uploaded_file.name not in st.session_state["uploaded_files_data"]:
+                        file_bytes = uploaded_file.read()
+                        st.session_state["uploaded_files_data"][uploaded_file.name] = {
+                            "bytes": file_bytes,
+                            "type": uploaded_file.type
+                        }
 
-        st.markdown('</div>', unsafe_allow_html=True)
+        # ── Prévisualisation ──
+        if st.session_state["uploaded_files_data"]:
+            st.markdown('<div class="section-title">👁️ Prévisualisation</div>', unsafe_allow_html=True)
 
-        # Chat
-        st.markdown('<div class="card">', unsafe_allow_html=True)
+            filenames = list(st.session_state["uploaded_files_data"].keys())
+            selected_file = st.selectbox(
+                "Choisir une facture à prévisualiser",
+                filenames,
+                label_visibility="collapsed"
+            )
+
+            if selected_file:
+                file_data = st.session_state["uploaded_files_data"][selected_file]
+                file_bytes = file_data["bytes"]
+                file_type = file_data["type"]
+
+                st.markdown(f"**📄 {selected_file}**")
+
+                if file_type == "application/pdf":
+                    try:
+                        images = extract_pdf_images(file_bytes)
+                        if images:
+                            # Afficher toutes les pages
+                            for i, img in enumerate(images):
+                                if len(images) > 1:
+                                    st.caption(f"Page {i+1}/{len(images)}")
+                                st.image(img, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"❌ Erreur prévisualisation PDF : {e}")
+                else:
+                    try:
+                        img = Image.open(io.BytesIO(file_bytes))
+                        st.image(img, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"❌ Erreur prévisualisation image : {e}")
+
+                # Bouton téléchargement
+                st.download_button(
+                    label=f"📥 Télécharger {selected_file}",
+                    data=file_bytes,
+                    file_name=selected_file,
+                    mime=file_type,
+                    use_container_width=True
+                )
+
+        st.markdown("---")
+
+        # ── Chat ──
         st.markdown('<div class="section-title">💬 Chat avec FactureCat</div>', unsafe_allow_html=True)
 
         chat_container = st.container()
@@ -468,36 +512,28 @@ if page == "📄 Factures":
             st.session_state["chat_history"].append({"role": "user", "content": user_input})
 
             factures_context = json.dumps(st.session_state["factures"], ensure_ascii=False, indent=2)
-            prompt_chat = f"""Tu es FactureCat 🐱, un assistant comptable félin sympa et professionnel.
-Tu as accès aux factures suivantes :
+            prompt_chat = f"""Tu es FactureCat 🐱, expert comptable félin sympa et professionnel.
+Voici les factures de l'utilisateur :
 {factures_context}
 
-Question de l'utilisateur : {user_input}
+Question : {user_input}
 
-Réponds de manière utile, précise et avec une touche féline (utilise des 🐾 et 🐱 occasionnellement).
-Si tu fais des calculs, montre les étapes. Réponds en français."""
+Réponds en français, de façon concise et utile, avec des emojis 🐾."""
 
             with st.spinner("🐱 FactureCat réfléchit..."):
                 try:
                     response = model.generate_content(prompt_chat)
-                    answer = response.text
-                    st.session_state["chat_history"].append({"role": "assistant", "content": answer})
+                    st.session_state["chat_history"].append({
+                        "role": "assistant",
+                        "content": response.text
+                    })
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erreur : {e}")
 
-        if st.button("🗑️ Effacer le chat", use_container_width=True):
-            st.session_state["chat_history"] = []
-            st.rerun()
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # ── Colonne droite : tableau + métriques ────────────────────────────────
+    # ── Colonne droite : métriques + tableau ────────────────────────────────
     with col2:
-
         if st.session_state["factures"]:
-
-            # Métriques
             df = pd.DataFrame(st.session_state["factures"])
 
             total_ttc = df["montant_ttc"].sum() if "montant_ttc" in df.columns else 0
@@ -510,7 +546,7 @@ Si tu fais des calculs, montre les étapes. Réponds en français."""
                 st.markdown(f"""
                 <div class="metric-card">
                     <div class="metric-value">{total_ttc:.2f} €</div>
-                    <div class="metric-label">Total TTC 💰</div>
+                    <div class="metric-label">Total TTC 🔥</div>
                 </div>
                 """, unsafe_allow_html=True)
             with c2:
@@ -520,6 +556,8 @@ Si tu fais des calculs, montre les étapes. Réponds en français."""
                     <div class="metric-label">Factures 📄</div>
                 </div>
                 """, unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
 
             c3, c4 = st.columns(2)
             with c3:
@@ -594,6 +632,7 @@ Si tu fais des calculs, montre les étapes. Réponds en français."""
             with col_act3:
                 if st.button("🗑️ Effacer tout", use_container_width=True, key="clear_factures"):
                     st.session_state["factures"] = []
+                    st.session_state["uploaded_files_data"] = {}
                     st.rerun()
 
         else:
@@ -616,7 +655,6 @@ elif page == "💰 Notes de frais":
     col1, col2 = st.columns([1, 1], gap="large")
 
     with col1:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">➕ Ajouter une dépense</div>', unsafe_allow_html=True)
 
         with st.form("form_note_frais", clear_on_submit=True):
@@ -669,11 +707,9 @@ elif page == "💰 Notes de frais":
                     st.success(f"✅ Dépense ajoutée ! 🐾 ({montant:.2f} €)")
                     st.rerun()
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # ── Analyse IA des notes de frais ──────────────────────────────────
+        # ── Analyse IA ──
         if st.session_state["notes_frais"]:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown("---")
             st.markdown('<div class="section-title">🤖 Analyse IA des dépenses</div>', unsafe_allow_html=True)
 
             if st.button("🐱 Analyser mes dépenses avec l'IA", use_container_width=True):
@@ -698,14 +734,11 @@ Réponds en français avec des emojis 🐾 et sois concis mais utile."""
                     except Exception as e:
                         st.error(f"❌ Erreur : {e}")
 
-            st.markdown('</div>', unsafe_allow_html=True)
-
     with col2:
         if st.session_state["notes_frais"]:
             df_nf = pd.DataFrame(st.session_state["notes_frais"])
             df_nf = df_nf.drop(columns=["id"], errors="ignore")
 
-            # Métriques
             total_nf = df_nf["Montant (€)"].sum() if "Montant (€)" in df_nf.columns else 0
             nb_nf = len(df_nf)
 
@@ -725,7 +758,8 @@ Réponds en français avec des emojis 🐾 et sois concis mais utile."""
                 </div>
                 """, unsafe_allow_html=True)
 
-            # Graphique par catégorie
+            st.markdown("<br>", unsafe_allow_html=True)
+
             if "Catégorie" in df_nf.columns and "Montant (€)" in df_nf.columns:
                 cat_totals = df_nf.groupby("Catégorie")["Montant (€)"].sum().reset_index()
                 st.bar_chart(cat_totals.set_index("Catégorie"))
@@ -740,7 +774,7 @@ Réponds en français avec des emojis 🐾 et sois concis mais utile."""
                 column_config={
                     "Statut": st.column_config.SelectboxColumn(
                         "Statut",
-                        options=["Validé 😸", "À vérifier 🐱", "Erreur 🙀", "En attente 😺", "Refusé 🙀"]
+                        options=["En attente 😺", "Validé 😸", "À vérifier 🐱", "Refusé 🙀"]
                     ),
                     "Catégorie": st.column_config.SelectboxColumn(
                         "Catégorie",
@@ -751,9 +785,10 @@ Réponds en français avec des emojis 🐾 et sois concis mais utile."""
             )
 
             st.markdown("---")
-            col_act1, col_act2, col_act3 = st.columns(3)
 
-            with col_act1:
+            col_e1, col_e2, col_e3 = st.columns(3)
+
+            with col_e1:
                 buffer_nf = io.BytesIO()
                 df_nf.to_excel(buffer_nf, index=False, engine="openpyxl")
                 buffer_nf.seek(0)
@@ -765,7 +800,7 @@ Réponds en français avec des emojis 🐾 et sois concis mais utile."""
                     use_container_width=True
                 )
 
-            with col_act2:
+            with col_e2:
                 csv_nf = df_nf.to_csv(index=False).encode("utf-8")
                 st.download_button(
                     label="📄 Exporter CSV",
@@ -775,8 +810,8 @@ Réponds en français avec des emojis 🐾 et sois concis mais utile."""
                     use_container_width=True
                 )
 
-            with col_act3:
-                if st.button("🗑️ Effacer tout", use_container_width=True, key="clear_nf"):
+            with col_e3:
+                if st.button("🗑️ Effacer tout", use_container_width=True, key="clear_notes"):
                     st.session_state["notes_frais"] = []
                     st.rerun()
 
@@ -787,6 +822,6 @@ Réponds en français avec des emojis 🐾 et sois concis mais utile."""
                 <p style="font-size:1.3rem; font-weight:800; color:#a0522d; margin-top:1rem;">
                     Aucune dépense enregistrée !
                 </p>
-                <p style="color:#c8956c;">Ajoutez votre première dépense avec le formulaire 🐾</p>
+                <p style="color:#c8956c;">Ajoutez votre première dépense à gauche 🐾</p>
             </div>
             """, unsafe_allow_html=True)
