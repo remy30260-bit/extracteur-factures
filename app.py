@@ -1066,6 +1066,110 @@ Question : {user_input}
         st.session_state["chat_messages"] = []
         st.rerun()
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# FONCTIONS UTILITAIRES (à placer AVANT main)
+# ═══════════════════════════════════════════════════════════════════════════════
+def configure_gemini():
+    try:
+        api_key = st.secrets["gemini"]["api_key"]
+        genai.configure(api_key=api_key)
+        return genai.GenerativeModel("gemini-1.5-flash")
+    except Exception as e:
+        st.error(f"❌ Erreur Gemini : {e}")
+        return None
+
+def pdf_to_images(uploaded_file):
+    content = uploaded_file.read()
+    if uploaded_file.name.lower().endswith(".pdf"):
+        doc    = fitz.open(stream=content, filetype="pdf")
+        images = []
+        for page in doc:
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+            img = Image.open(io.BytesIO(pix.tobytes("png")))
+            images.append(img)
+        return images
+    else:
+        return [Image.open(io.BytesIO(content))]
+
+def extraire_facture(model, images):
+    prompt = """
+Analyse cette facture et extrais les informations suivantes en JSON :
+{
+  "fournisseur": "nom du fournisseur",
+  "numero": "numéro de facture",
+  "date": "date au format YYYY-MM-DD",
+  "montant_ht": valeur numérique,
+  "tva": valeur numérique,
+  "montant_ttc": valeur numérique,
+  "categorie": "catégorie (Informatique/Transport/Repas/Fournitures/Services/Autres)",
+  "statut": "À payer"
+}
+Réponds UNIQUEMENT avec le JSON, sans markdown.
+"""
+    try:
+        response = model.generate_content([prompt] + images)
+        text     = response.text.strip()
+        text     = text.replace("```json","").replace("```","").strip()
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return {
+            "fournisseur": "Non détecté",
+            "numero":      "—",
+            "date":        str(datetime.now().date()),
+            "montant_ht":  0,
+            "tva":         0,
+            "montant_ttc": 0,
+            "categorie":   "Autres",
+            "statut":      "À payer"
+        }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FONCTION MAIN
+# ═══════════════════════════════════════════════════════════════════════════════
+def main():
+    # Sidebar navigation
+    with st.sidebar:
+        st.markdown("""
+        <div style="text-align:center; padding:1rem 0;">
+            <div style="font-size:3rem;">🐱</div>
+            <h2 style="color:#a0522d; margin:0;">FactureCat</h2>
+            <p style="color:#c8956c; font-size:0.85rem;">Gestion comptable IA</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        page = st.radio(
+            "Navigation",
+            ["🏠 Dashboard", "📄 Factures", "🧾 Notes de frais", "🤖 Assistant IA"],
+            label_visibility="collapsed"
+        )
+
+        st.markdown("<hr style='border-color:rgba(240,160,112,0.3)'>", 
+                    unsafe_allow_html=True)
+
+        if st.button("🚪 Déconnexion", use_container_width=True):
+            st.session_state["authenticated"] = False
+            st.rerun()
+
+    # ── Routing des pages ─────────────────────────────────────────────────────
+    if page == "🏠 Dashboard":
+        show_dashboard()
+    elif page == "📄 Factures":
+        show_factures()
+    elif page == "🧾 Notes de frais":
+        show_notes()
+    elif page == "🤖 Assistant IA":
+        show_chatbot()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# POINT D'ENTRÉE
+# ═══════════════════════════════════════════════════════════════════════════════
+if __name__ == "__main__":
+    if check_password():
+        main()
+else:
+    if check_password():
+        main()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN
