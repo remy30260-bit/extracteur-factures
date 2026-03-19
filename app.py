@@ -87,12 +87,29 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
     * { font-family: 'Nunito', sans-serif; }
     .stApp { background-color: #fdf6f0; }
-    [data-testid="stSidebar"] {
-        background-color: #fff8f3;
-        border-right: 2px solid #f0d5c0;
-    }
+
+    /* Cache la sidebar */
+    [data-testid="stSidebar"] { display: none; }
+
     h1 { color: #a0522d; font-weight: 800; }
     h2, h3 { color: #c8956c; }
+
+    /* Topbar fixe */
+    .topbar {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 9999;
+        background: linear-gradient(135deg, #a0522d, #c8956c);
+        padding: 0.7rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 4px 20px rgba(160,82,45,0.4);
+    }
+
+    /* Décale le contenu sous la topbar */
+    .main .block-container { padding-top: 6rem !important; }
+
     .stButton > button {
         background: linear-gradient(135deg, #f0a070, #e8856a);
         color: white; border: none; border-radius: 20px;
@@ -103,6 +120,12 @@ st.markdown("""
     .stButton > button:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(200,149,108,0.6);
+    }
+    .stButton > button[kind="secondary"] {
+        background: rgba(255,255,255,0.2) !important;
+        color: white !important;
+        border: 2px solid rgba(255,255,255,0.5) !important;
+        box-shadow: none !important;
     }
     .stDownloadButton > button {
         background: linear-gradient(135deg, #a8d8a8, #7fc87f);
@@ -156,8 +179,6 @@ st.markdown("""
         display: block !important; text-align: center !important;
         width: fit-content !important; max-width: 100% !important;
     }
-    /* Style navigation active */
-    div[data-testid="stRadio"] > div { gap: 0.5rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -180,75 +201,106 @@ CAT_ASCII_PETIT = (
 def ascii_to_html(ascii_art: str) -> str:
     return ascii_art.replace("\n", "<br>")
 
-# ─── SIDEBAR ──────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("""
-    <div style="text-align:center; padding: 1rem 0;">
-        <div style="font-size: 3rem;">🐱</div>
-        <h2 style="color:#a0522d; margin:0;">FactureCat</h2>
-        <p style="color:#c8956c; font-size:0.85rem;">Votre assistant comptable félin</p>
+# ─── TOPBAR ───────────────────────────────────────────────────────────────────
+st.markdown(f"""
+<div class="topbar">
+    <div style="display:flex; align-items:center; gap:0.8rem;">
+        <span style="font-size:1.8rem;">🐱</span>
+        <span style="color:white; font-weight:800; font-size:1.3rem; letter-spacing:0.5px;">FactureCat</span>
+        <span style="color:#f5e6d8; font-size:0.8rem; margin-left:0.5rem;">
+            Votre assistant comptable félin
+        </span>
     </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("---")
-    
-    # ─── NAVIGATION ───────────────────────────────────────────────────────────
-    st.markdown("### 📂 Navigation")
-    page = st.radio(
-        "",
-        ["📄 Factures", "💰 Notes de frais"],
-        label_visibility="collapsed"
-    )
-
-    st.markdown("---")
-    st.markdown("### ⚙️ Configuration")
-    api_key = st.secrets["GEMINI_API_KEY"]
-
-    st.markdown("---")
-    mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
-                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-    now = datetime.now()
-    mois_choisi = mois_list[now.month - 1]
-    annee_choisie = now.year
-
-    if page == "📄 Factures":
-        st.markdown("""
-        <div class="card">
-            <p style="color:#a0522d; font-weight:700; margin:0 0 0.5rem 0;">📖 Guide rapide</p>
-            <p style="color:#c8956c; font-size:0.85rem; margin:0;">
-            1. 📁 Uploadez vos factures<br>
-            2. 🚀 Lancez l'extraction<br>
-            3. ✏️ Vérifiez les données<br>
-            4. 📥 Exportez en Excel
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class="card">
-            <p style="color:#a0522d; font-weight:700; margin:0 0 0.5rem 0;">📖 Guide rapide</p>
-            <p style="color:#c8956c; font-size:0.85rem; margin:0;">
-            1. ➕ Ajoutez une dépense<br>
-            2. 📸 Joignez le justificatif<br>
-            3. ✏️ Vérifiez les données<br>
-            4. 📥 Exportez en Excel
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown(f"""
-    <div style="text-align:center; margin-top:1rem;">
-        <div class="cat-ascii" style="font-size:0.9rem !important;">{ascii_to_html(CAT_ASCII_PETIT)}</div>
-        <p style="color:#d4a882; font-size:0.75rem; margin-top:0.3rem;">
-            Miaouu~ je veille sur vos dépenses
-        </p>
+    <div style="color:#f5e6d8; font-size:0.85rem;">
+        🐾 {st.session_state.get('user_email', '')}
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
-    st.markdown("---")
-    if st.button("🚪 Se déconnecter"):
+# ─── NAVIGATION HORIZONTALE ───────────────────────────────────────────────────
+if "page" not in st.session_state:
+    st.session_state["page"] = "📄 Factures"
+
+col_nav1, col_nav2, col_nav3, col_nav4, col_nav5 = st.columns([1, 2, 2, 2, 1])
+
+with col_nav2:
+    if st.button(
+        "📄 Factures",
+        use_container_width=True,
+        type="primary" if st.session_state["page"] == "📄 Factures" else "secondary"
+    ):
+        st.session_state["page"] = "📄 Factures"
+        st.rerun()
+
+with col_nav3:
+    if st.button(
+        "💰 Notes de frais",
+        use_container_width=True,
+        type="primary" if st.session_state["page"] == "💰 Notes de frais" else "secondary"
+    ):
+        st.session_state["page"] = "💰 Notes de frais"
+        st.rerun()
+
+with col_nav4:
+    if st.button("🚪 Se déconnecter", use_container_width=True):
         st.session_state["authenticated"] = False
         st.rerun()
+
+st.markdown("---")
+
+page = st.session_state["page"]
+
+# ─── CONFIG ───────────────────────────────────────────────────────────────────
+api_key = st.secrets["GEMINI_API_KEY"]
+
+mois_list = ["Janvier","Février","Mars","Avril","Mai","Juin",
+             "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+now = datetime.now()
+mois_choisi = mois_list[now.month - 1]
+annee_choisie = now.year
+
+# ─── FONCTIONS UTILITAIRES ────────────────────────────────────────────────────
+def pdf_to_images(pdf_bytes):
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    images = []
+    for page in doc:
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        images.append(img)
+    return images
+
+def image_to_pil(fichier):
+    fichier.seek(0)
+    if fichier.type == "application/pdf":
+        return pdf_to_images(fichier.read())[0]
+    else:
+        return Image.open(fichier)
+
+def extraire_facture(fichier, model):
+    image = image_to_pil(fichier)
+    prompt = """Tu es un expert comptable. Analyse cette facture et extrait les informations.
+
+Retourne UNIQUEMENT ce JSON brut, sans markdown, sans backticks :
+{
+  "date": "JJ/MM/AAAA ou vide",
+  "fournisseur": "nom du fournisseur",
+  "numero_facture": "numéro ou vide",
+  "montant_ht": "montant HT en euros (nombre uniquement, ex: 100.00)",
+  "tva": "montant TVA en euros (nombre uniquement)",
+  "montant_ttc": "montant TTC en euros (nombre uniquement)",
+  "description": "courte description du contenu",
+  "categorie": "Transport/Repas/Hébergement/Fournitures/Services/Autres"
+}
+IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
+
+    response = model.generate_content([prompt, image])
+    text = response.text.strip()
+    if "```" in text:
+        text = text.split("```")[1]
+        if text.startswith("json"):
+            text = text[4:]
+    text = text.strip()
+    return json.loads(text)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE : FACTURES
@@ -286,56 +338,6 @@ if page == "📄 Factures":
         help="Formats acceptés : PDF, JPG, PNG"
     )
 
-    if fichiers:
-        st.markdown(f"""
-        <div class="card" style="background: linear-gradient(135deg, #fff8f3, #fdf0e8);">
-            <span style="color:#a0522d; font-weight:700;">
-                🐱 Miaou ! {len(fichiers)} fichier(s) détecté(s) et prêt(s) à être analysé(s) 🐾
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-
-    def pdf_to_images(pdf_bytes):
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        images = []
-        for page in doc:
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            images.append(img)
-        return images
-
-    def extraire_facture(fichier, model, mois, annee):
-        if fichier.type == "application/pdf":
-            images = pdf_to_images(fichier.read())
-            image = images[0]
-        else:
-            image = Image.open(fichier)
-
-        prompt = f"""Analyse cette facture et extrais les informations en JSON.
-Période comptable : {mois} {annee}
-
-Retourne UNIQUEMENT ce JSON brut, sans markdown, sans backticks :
-{{
-  "date": "JJ/MM/AAAA ou vide",
-  "fournisseur": "nom du fournisseur",
-  "numero_facture": "numéro ou vide",
-  "montant_ht": "montant HT en euros (nombre uniquement, ex: 100.00)",
-  "tva": "montant TVA en euros (nombre uniquement)",
-  "montant_ttc": "montant TTC en euros (nombre uniquement)",
-  "description": "courte description du contenu",
-  "categorie": "Transport/Repas/Hébergement/Fournitures/Services/Autres"
-}}
-IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
-
-        response = model.generate_content([prompt, image])
-        text = response.text.strip()
-        if "```" in text:
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        text = text.strip()
-        return json.loads(text)
-
     if fichiers and api_key:
         noms_actuels = sorted([f.name for f in fichiers])
         noms_precedents = sorted(st.session_state.get("fichiers_extraits", []))
@@ -371,23 +373,20 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
                 resultats = []
 
                 for i, fichier in enumerate(fichiers):
-                    fichier.seek(0)
-                    status_cats = ["😺", "🐱", "😸", "🙀", "😻"]
-                    cat = status_cats[i % len(status_cats)]
-                    with st.spinner(f"{cat} Analyse de {fichier.name}..."):
-                        try:
-                            data = extraire_facture(fichier, model, mois_choisi, annee_choisie)
-                            data["fichier"] = fichier.name
-                            data["statut"] = "Validé 😸"
-                            resultats.append(data)
-                        except Exception as e:
-                            resultats.append({
-                                "fichier": fichier.name,
-                                "date": "", "fournisseur": "", "numero_facture": "",
-                                "montant_ht": "", "tva": "", "montant_ttc": "",
-                                "description": str(e), "categorie": "",
-                                "statut": "Erreur 🙀"
-                            })
+                    try:
+                        data = extraire_facture(fichier, model)
+                        data["fichier"] = fichier.name
+                        data["statut"] = "Validé 😸"
+                        resultats.append(data)
+                    except Exception as e:
+                        resultats.append({
+                            "fichier": fichier.name,
+                            "date": "", "fournisseur": "Erreur extraction",
+                            "numero_facture": "", "montant_ht": "0",
+                            "tva": "0", "montant_ttc": "0",
+                            "description": str(e), "categorie": "Autres",
+                            "statut": "Erreur 🙀"
+                        })
                     progress.progress(int((i + 1) / len(fichiers) * 100))
 
                 progress.progress(100)
@@ -468,45 +467,41 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
                 st.markdown("### 📊 Tableau de bord")
                 col1, col2, col3, col4 = st.columns(4)
 
+                try:
+                    total_ht = sum(float(str(r.get("montant_ht","0")).replace(",",".")) for r in resultats)
+                    total_tva = sum(float(str(r.get("tva","0")).replace(",",".")) for r in resultats)
+                    total_ttc = sum(float(str(r.get("montant_ttc","0")).replace(",",".")) for r in resultats)
+                except:
+                    total_ht = total_tva = total_ttc = 0
+
                 with col1:
                     st.markdown(f"""
                     <div class="card" style="text-align:center;">
-                        <div style="font-size:2.5rem;">🐱</div>
-                        <div style="font-size:2rem; font-weight:800; color:#a0522d;">{len(df_edit)}</div>
-                        <div style="color:#c8956c;">Factures traitées</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        <div style="font-size:2rem;">📄</div>
+                        <p style="color:#a0522d; font-weight:800; font-size:1.5rem; margin:0;">{len(resultats)}</p>
+                        <p style="color:#c8956c; margin:0; font-size:0.85rem;">Factures traitées</p>
+                    </div>""", unsafe_allow_html=True)
                 with col2:
-                    nb_valides = len(df_edit[df_edit["Statut"] == "Validé 😸"])
                     st.markdown(f"""
                     <div class="card" style="text-align:center;">
-                        <div style="font-size:2.5rem;">😸</div>
-                        <div style="font-size:2rem; font-weight:800; color:#2d6b4a;">{nb_valides}</div>
-                        <div style="color:#c8956c;">Validées</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        <div style="font-size:2rem;">💶</div>
+                        <p style="color:#a0522d; font-weight:800; font-size:1.5rem; margin:0;">{total_ht:.2f} €</p>
+                        <p style="color:#c8956c; margin:0; font-size:0.85rem;">Total HT</p>
+                    </div>""", unsafe_allow_html=True)
                 with col3:
-                    nb_erreurs = len(df_edit[df_edit["Statut"] == "Erreur 🙀"])
                     st.markdown(f"""
                     <div class="card" style="text-align:center;">
-                        <div style="font-size:2.5rem;">🙀</div>
-                        <div style="font-size:2rem; font-weight:800; color:#c0392b;">{nb_erreurs}</div>
-                        <div style="color:#c8956c;">Erreurs</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        <div style="font-size:2rem;">🏦</div>
+                        <p style="color:#a0522d; font-weight:800; font-size:1.5rem; margin:0;">{total_tva:.2f} €</p>
+                        <p style="color:#c8956c; margin:0; font-size:0.85rem;">Total TVA</p>
+                    </div>""", unsafe_allow_html=True)
                 with col4:
-                    try:
-                        total = df_edit["Montant TTC (€)"].replace('', '0').astype(float).sum()
-                        total_str = f"{total:,.2f} €"
-                    except:
-                        total_str = "N/A"
                     st.markdown(f"""
                     <div class="card" style="text-align:center;">
-                        <div style="font-size:2.5rem;">💰</div>
-                        <div style="font-size:1.5rem; font-weight:800; color:#a0522d;">{total_str}</div>
-                        <div style="color:#c8956c;">Total TTC</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        <div style="font-size:2rem;">💰</div>
+                        <p style="color:#a0522d; font-weight:800; font-size:1.5rem; margin:0;">{total_ttc:.2f} €</p>
+                        <p style="color:#c8956c; margin:0; font-size:0.85rem;">Total TTC</p>
+                    </div>""", unsafe_allow_html=True)
 
                 st.markdown("### 📄 Visualisation des Factures")
                 for idx, fichier in enumerate(fichiers):
@@ -535,38 +530,6 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, rien d'autre."""
                         use_container_width=True
                     )
 
-                st.markdown("---")
-                st.markdown(f"""
-                <div style="text-align:center; padding: 1rem 0;">
-                    <div class="cat-ascii">{ascii_to_html(CAT_ASCII_GRAND)}</div>
-                    <p style="color:#a0522d; font-weight:700; margin-top:0.8rem;">Purrrfait travail ! 🐾</p>
-                    <p style="color:#c8956c; font-size:0.85rem;">FactureCat — Votre comptable félin 🐱</p>
-                </div>
-                """, unsafe_allow_html=True)
-
-    elif fichiers and not api_key:
-        st.markdown("""
-        <div class="cat-container">
-            <div style="font-size:2.5rem;">🙀</div>
-            <div class="chat-bubble">
-                <span style="color:#a0522d; font-weight:700;">Miaou ! J'ai besoin de ta clé API... 🔑</span><br>
-                <span style="color:#c8956c;">Entre-la dans le menu à gauche !</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    elif not fichiers:
-        st.markdown(f"""
-        <div style="text-align:center; padding: 3rem 0;">
-            <div class="cat-ascii" style="font-size:1.2rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
-            <p style="font-size:1.2rem; font-weight:700; color:#a0522d; margin-top:1rem;">
-                Uploadez vos factures pour commencer !
-            </p>
-            <p style="color:#c8956c;">Je suis prêt à analyser vos documents 🐾</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE : NOTES DE FRAIS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -584,11 +547,9 @@ elif page == "💰 Notes de frais":
 
     st.markdown("---")
 
-    # Initialisation session
     if "notes_frais" not in st.session_state:
         st.session_state["notes_frais"] = []
 
-    # ─── FORMULAIRE AJOUT ─────────────────────────────────────────────────────
     st.markdown("""
     <div class="cat-container">
         <div style="font-size:3.5rem;">🐱</div>
@@ -614,12 +575,14 @@ elif page == "💰 Notes de frais":
         with col2:
             nf_montant_ht = st.number_input("💶 Montant HT (€)", min_value=0.0, step=0.01, format="%.2f")
             nf_tva = st.selectbox("📊 TVA", ["20%", "10%", "5.5%", "0%"])
-            
-            # Calcul automatique TTC
+            nf_moyen_paiement = st.selectbox("💳 Moyen de paiement", [
+                "Carte bancaire", "Espèces", "Virement", "Chèque"
+            ])
+
             tva_pct = float(nf_tva.replace("%", "")) / 100
             nf_montant_tva = round(nf_montant_ht * tva_pct, 2)
             nf_montant_ttc = round(nf_montant_ht + nf_montant_tva, 2)
-            
+
             st.markdown(f"""
             <div class="card" style="padding:1rem; margin-top:0.5rem;">
                 <p style="margin:0; color:#c8956c; font-size:0.85rem;">Calcul automatique :</p>
@@ -628,22 +591,12 @@ elif page == "💰 Notes de frais":
             </div>
             """, unsafe_allow_html=True)
 
-            nf_moyen_paiement = st.selectbox("💳 Moyen de paiement", [
-                "Carte entreprise", "Espèces", "Carte personnelle", "Virement"
-            ])
             nf_justificatif = st.file_uploader(
-                "📸 Justificatif (optionnel)",
-                type=["pdf", "jpg", "jpeg", "png"],
-                key="justificatif_upload"
+                "📎 Justificatif",
+                type=["pdf", "jpg", "jpeg", "png"]
             )
 
-        col_submit = st.columns([1, 2, 1])
-        with col_submit[1]:
-            submitted = st.form_submit_button(
-                "➕ Ajouter la dépense 🐾",
-                use_container_width=True,
-                type="primary"
-            )
+        submitted = st.form_submit_button("➕ Ajouter la dépense", use_container_width=True)
 
         if submitted:
             if not nf_employe:
@@ -668,104 +621,62 @@ elif page == "💰 Notes de frais":
                 st.success("✅ Dépense ajoutée avec succès ! 🐾")
                 st.rerun()
 
-    # ─── TABLEAU DES NOTES ────────────────────────────────────────────────────
+    # ─── LISTE DES NOTES ──────────────────────────────────────────────────────
     if st.session_state["notes_frais"]:
-        st.markdown("---")
-        st.markdown("""
-        <div class="cat-container">
-            <div style="font-size:2.5rem;">😻</div>
-            <div class="chat-bubble">
-                <span style="color:#a0522d; font-weight:700;">Vos notes de frais 🐾</span><br>
-                <span style="color:#c8956c;">Modifiez directement dans le tableau !</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("### 📋 Mes notes de frais")
 
         df_nf = pd.DataFrame(st.session_state["notes_frais"])
 
-        # Filtres rapides
-        col_f1, col_f2, col_f3 = st.columns(3)
-        with col_f1:
-            filtre_employe = st.text_input("🔍 Filtrer par employé", "")
-        with col_f2:
-            filtre_categorie = st.selectbox("📂 Filtrer par catégorie", 
-                ["Toutes"] + list(df_nf["Catégorie"].unique()))
-        with col_f3:
-            filtre_statut = st.selectbox("🏷️ Filtrer par statut",
-                ["Tous", "En attente 😺", "Validé 😸", "Refusé 🙀"])
+        # KPIs
+        col_k1, col_k2, col_k3, col_k4 = st.columns(4)
+        total_nf_ht = df_nf["Montant HT (€)"].sum()
+        total_nf_ttc = df_nf["Montant TTC (€)"].sum()
+        total_nf_tva = df_nf["Montant TVA (€)"].sum()
 
-        df_filtre = df_nf.copy()
-        if filtre_employe:
-            df_filtre = df_filtre[df_filtre["Employé"].str.contains(filtre_employe, case=False)]
-        if filtre_categorie != "Toutes":
-            df_filtre = df_filtre[df_filtre["Catégorie"] == filtre_categorie]
-        if filtre_statut != "Tous":
-            df_filtre = df_filtre[df_filtre["Statut"] == filtre_statut]
+        with col_k1:
+            st.markdown(f"""
+            <div class="card" style="text-align:center;">
+                <div style="font-size:2rem;">🧾</div>
+                <p style="color:#a0522d; font-weight:800; font-size:1.5rem; margin:0;">{len(df_nf)}</p>
+                <p style="color:#c8956c; margin:0; font-size:0.85rem;">Dépenses</p>
+            </div>""", unsafe_allow_html=True)
+        with col_k2:
+            st.markdown(f"""
+            <div class="card" style="text-align:center;">
+                <div style="font-size:2rem;">💶</div>
+                <p style="color:#a0522d; font-weight:800; font-size:1.5rem; margin:0;">{total_nf_ht:.2f} €</p>
+                <p style="color:#c8956c; margin:0; font-size:0.85rem;">Total HT</p>
+            </div>""", unsafe_allow_html=True)
+        with col_k3:
+            st.markdown(f"""
+            <div class="card" style="text-align:center;">
+                <div style="font-size:2rem;">🏦</div>
+                <p style="color:#a0522d; font-weight:800; font-size:1.5rem; margin:0;">{total_nf_tva:.2f} €</p>
+                <p style="color:#c8956c; margin:0; font-size:0.85rem;">Total TVA</p>
+            </div>""", unsafe_allow_html=True)
+        with col_k4:
+            st.markdown(f"""
+            <div class="card" style="text-align:center;">
+                <div style="font-size:2rem;">💰</div>
+                <p style="color:#a0522d; font-weight:800; font-size:1.5rem; margin:0;">{total_nf_ttc:.2f} €</p>
+                <p style="color:#c8956c; margin:0; font-size:0.85rem;">Total TTC</p>
+            </div>""", unsafe_allow_html=True)
 
         df_nf_edit = st.data_editor(
-            df_filtre,
-            use_container_width=True,
-            hide_index=True,
+            df_nf, use_container_width=True, hide_index=True,
             column_config={
                 "Statut": st.column_config.SelectboxColumn(
                     "Statut",
-                    options=["En attente 😺", "Validé 😸", "Refusé 🙀", "À vérifier 🐱"]
+                    options=["Validé 😸", "À vérifier 🐱", "Erreur 🙀", "En attente 😺"]
                 ),
                 "Catégorie": st.column_config.SelectboxColumn(
                     "Catégorie",
-                    options=["Transport 🚗", "Repas 🍽️", "Hébergement 🏨",
-                             "Fournitures 📦", "Formation 🎓", "Client 🤝", "Autres"]
-                ),
-                "Montant HT (€)": st.column_config.NumberColumn(format="%.2f €"),
-                "Montant TVA (€)": st.column_config.NumberColumn(format="%.2f €"),
-                "Montant TTC (€)": st.column_config.NumberColumn(format="%.2f €"),
+                    options=["Transport 🚗","Repas 🍽️","Hébergement 🏨",
+                             "Fournitures 📦","Formation 🎓","Client 🤝","Autres"]
+                )
             }
         )
 
-        # ─── DASHBOARD ────────────────────────────────────────────────────────
-        st.markdown("### 📊 Tableau de bord")
-        col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-            st.markdown(f"""
-            <div class="card" style="text-align:center;">
-                <div style="font-size:2.5rem;">📝</div>
-                <div style="font-size:2rem; font-weight:800; color:#a0522d;">{len(df_nf)}</div>
-                <div style="color:#c8956c;">Total dépenses</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col2:
-            nb_validees = len(df_nf[df_nf["Statut"] == "Validé 😸"])
-            st.markdown(f"""
-            <div class="card" style="text-align:center;">
-                <div style="font-size:2.5rem;">😸</div>
-                <div style="font-size:2rem; font-weight:800; color:#2d6b4a;">{nb_validees}</div>
-                <div style="color:#c8956c;">Validées</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col3:
-            nb_attente = len(df_nf[df_nf["Statut"] == "En attente 😺"])
-            st.markdown(f"""
-            <div class="card" style="text-align:center;">
-                <div style="font-size:2.5rem;">😺</div>
-                <div style="font-size:2rem; font-weight:800; color:#e67e22;">{nb_attente}</div>
-                <div style="color:#c8956c;">En attente</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col4:
-            total_ttc = df_nf["Montant TTC (€)"].sum()
-            st.markdown(f"""
-            <div class="card" style="text-align:center;">
-                <div style="font-size:2.5rem;">💰</div>
-                <div style="font-size:1.5rem; font-weight:800; color:#a0522d;">{total_ttc:,.2f} €</div>
-                <div style="color:#c8956c;">Total TTC</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        # ─── BOUTONS ACTIONS ──────────────────────────────────────────────────
         st.markdown("---")
         col_act1, col_act2, col_act3 = st.columns(3)
 
@@ -797,7 +708,6 @@ elif page == "💰 Notes de frais":
                 st.rerun()
 
     else:
-        # Aucune note encore
         st.markdown(f"""
         <div style="text-align:center; padding: 3rem 0;">
             <div class="cat-ascii" style="font-size:1.2rem !important;">{ascii_to_html(CAT_ASCII_GRAND)}</div>
