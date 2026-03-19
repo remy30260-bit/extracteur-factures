@@ -1254,9 +1254,21 @@ else:
             </p>
         </div>
         """, unsafe_allow_html=True)
-
 # ─── FOOTER ───────────────────────────────────────────────────────────────────
 st.markdown("---")
-st.markdown(""")
+st.markdown("""
 <div style="text-align:center; padding:1rem 0;">
-    <p style="font-weight:900;color:#a0522d;font-size:1
+    <p style="font-weight:900;color:#a0522d;font-size:1rem;">
+        🐱 FactureCat — Votre assistant comptable félin 🐾
+    </p>
+    <p style="color:#d4a882;font-size:0.75rem;">
+        Propulsé par Gemini AI ✨
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+# ─── CHATBOT FLOTTANT ─────────────────────────────────────────────────────────
+factures_ctx   = st.session_state.get("resultats", [])
+notes_ctx      = st.session_state.get("notes_frais", [])
+render_chat_widget(notes_frais_data=notes_ctx, factures_data=factures_ctx)
+
