@@ -884,17 +884,19 @@ def show_factures():
     tab1, tab2, tab3 = st.tabs(["📤 Import & Analyse", "📋 Liste & Aperçu", "📊 Export"])
 
     # ── Import ───────────────────────────────────────────────────────────────
+       # ── Import ───────────────────────────────────────────────────────────────
     with tab1:
-    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
-    col_upload, col_preview = st.columns([1, 1])
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+        col_upload, col_preview = st.columns([1, 1])
 
-    with col_upload:
-        uploaded_files = st.file_uploader(
-            "Glissez vos factures (PDF ou image)",
-            type=["pdf","png","jpg","jpeg"],
-            accept_multiple_files=True,
-            key="facture_uploader"
-        )
+        with col_upload:
+            uploaded_files = st.file_uploader(
+                "Glissez vos factures (PDF ou image)",
+                type=["pdf","png","jpg","jpeg"],
+                accept_multiple_files=True,
+                key="facture_uploader"
+            )
+
 
         if uploaded_files:
             existing_names = {r.get("fichier","") for r in get_data("factures")}
