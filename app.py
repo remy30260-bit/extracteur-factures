@@ -81,35 +81,58 @@ div[data-testid="stVerticalBlock"] { gap: 0 !important; }
     background: transparent !important;
 }
 
-/* ── TOPBAR ── */
-.topbar {
-    position: fixed; top: 0; left: 0; right: 0;
-    height: 58px; background: white;
-    border-bottom: 1px solid #ece9e4;
-    display: flex; align-items: center;
-    padding: 0 2rem; z-index: 1001; gap: 2rem;
-    pointer-events: none;
+# ── TOPBAR + NAV ──
+nav_items = [
+    ("dashboard",    "🏠 Tableau de bord"),
+    ("factures",     "🧾 Factures"),
+    ("notes_frais",  "💸 Notes de frais"),
+    ("comptabilite", "📊 Comptabilité"),
+    ("parametres",   "⚙️ Paramètres"),
+]
+
+page = st.session_state.get("page", "dashboard")
+
+# HTML décoratif (pointer-events: none)
+nav_html = ""
+for k, label in nav_items:
+    active = "active" if page == k else ""
+    nav_html += f'<a class="{active}">{label}</a>'
+
+st.markdown(f"""
+<div class="topbar">
+    <div class="topbar-logo">🐱 Facture<span>Cat</span></div>
+    <nav class="topbar-nav">{nav_html}</nav>
+    <div class="topbar-right">
+        <div class="topbar-avatar">🐱</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+/* Rend les boutons nav visibles au survol */
+.nav-btn-row .stButton > button {
+    background: transparent !important;
+    border: none !important;
+    color: #6b7280 !important;  /* ← visible maintenant */
+    box-shadow: none !important;
+    height: 36px !important;
+    padding: 0 0.9rem !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
 }
-.topbar * { pointer-events: none; }
-.topbar-logo {
-    font-size: 1.1rem; font-weight: 800; color: #1a1a2e;
-    display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;
+.nav-btn-row .stButton > button:hover {
+    background: #f7f5f3 !important;
+    color: #1a1a2e !important;
 }
-.topbar-logo span { color: #f0a070; }
-.topbar-nav { display: flex; gap: 0.25rem; flex: 1; margin-left: 1rem; }
-.topbar-nav a {
-    padding: 0.4rem 0.9rem; border-radius: 8px;
-    font-size: 0.82rem; font-weight: 500; color: #6b7280;
-    text-decoration: none; white-space: nowrap;
-}
-.topbar-nav a.active { background: #fff4ee; color: #f0a070; font-weight: 600; }
-.topbar-right { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; }
-.topbar-avatar {
-    width: 32px; height: 32px;
-    background: linear-gradient(135deg, #f0a070, #e07040);
-    border-radius: 50%; display: flex; align-items: center;
-    justify-content: center; font-size: 0.9rem;
-}
+
+# Boutons Streamlit RÉELS positionnés par-dessus la topbar
+st.markdown('<div class="nav-btn-row">', unsafe_allow_html=True)
+cols = st.columns(len(nav_items))
+for i, (k, label) in enumerate(nav_items):
+    with cols[i]:
+        if st.button(label, key=f"nav_{k}"):
+            st.session_state["page"] = k
+            st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
+
 
 /* ── MAIN CONTENT ── */
 .main-content {
@@ -210,68 +233,98 @@ div[data-testid="stVerticalBlock"] { gap: 0 !important; }
     text-align: center; margin-top: 1rem;
 }
 
-/* ── CHATBOT FLOTTANT ── */
-.chat-fab {
-    position: fixed; bottom: 2rem; right: 2rem;
-    width: 56px; height: 56px;
-    background: linear-gradient(135deg, #f0a070, #e07040);
-    border-radius: 50%; display: flex;
-    align-items: center; justify-content: center;
-    font-size: 1.5rem; cursor: pointer;
-    box-shadow: 0 4px 20px rgba(240,112,64,0.4);
-    z-index: 900; transition: transform 0.2s;
+# ══════════════════════════════════════════════════════════════════════════════
+# CHATBOT FLOTTANT
+# ══════════════════════════════════════════════════════════════════════════════
+
+# FAB fixé en bas à droite via CSS — bouton Streamlit réel
+st.markdown("""
+<style>
+/* Cache le container du bouton FAB et le repositionne */
+div[data-testid="stVerticalBlock"]:has(> div > button[kind="secondary"]#chat_fab_btn) {
+    position: fixed !important;
+    bottom: 2rem !important;
+    right: 2rem !important;
+    z-index: 2000 !important;
+    width: 56px !important;
 }
-.chat-fab:hover { transform: scale(1.1); }
-.chat-window {
-    position: fixed; bottom: 5.5rem; right: 2rem;
-    width: 340px; height: 480px;
-    background: white; border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-    z-index: 900; display: flex; flex-direction: column;
-    border: 1px solid #ece9e4; overflow: hidden;
+/* Style du bouton FAB */
+button[kind="secondary"]#chat_fab_btn,
+div.stButton:has(button[key="chat_fab_btn"]) button {
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #f0a070, #e07040) !important;
+    border: none !important;
+    font-size: 1.5rem !important;
+    box-shadow: 0 4px 20px rgba(240,112,64,0.4) !important;
+    padding: 0 !important;
+    color: white !important;
 }
-.chat-header {
-    background: linear-gradient(135deg, #f0a070, #e07040);
-    padding: 1rem 1.2rem; color: white;
-    display: flex; align-items: center; gap: 0.75rem;
-}
-.chat-header-title { font-weight: 700; font-size: 0.9rem; }
-.chat-header-sub   { font-size: 0.72rem; opacity: 0.85; }
-.chat-messages {
-    flex: 1; overflow-y: auto;
-    padding: 1rem; display: flex;
-    flex-direction: column; gap: 0.75rem;
-}
-.msg-bot  { display: flex; align-items: flex-start; gap: 0.5rem; }
-.msg-user { display: flex; justify-content: flex-end; }
-.bubble {
-    border-radius: 14px; padding: 0.6rem 0.9rem;
-    font-size: 0.82rem; max-width: 80%; line-height: 1.5;
-}
-.msg-bot .bubble {
-    background: #f7f5f3; color: #374151;
-    border-radius: 4px 14px 14px 14px;
-}
-.msg-user .bubble {
-    background: linear-gradient(135deg, #f0a070, #e07040);
-    color: white; border-radius: 14px 14px 4px 14px;
-}
-.chat-input-area {
-    padding: 0.75rem; border-top: 1px solid #ece9e4; background: white;
-    display: flex; gap: 0.5rem;
-}
-.chat-input-area input {
-    flex: 1; border: 1px solid #ece9e4;
-    border-radius: 10px; padding: 0.6rem 0.9rem;
-    font-size: 0.82rem; outline: none;
-    font-family: 'Inter', sans-serif;
-}
-.chat-send-btn {
-    background: linear-gradient(135deg, #f0a070, #e07040);
-    border: none; border-radius: 10px;
-    color: white; padding: 0.6rem 0.9rem;
-    cursor: pointer; font-size: 0.9rem;
-}
+</style>
+""", unsafe_allow_html=True)
+
+# Conteneur fixe pour le FAB
+st.markdown('<div style="position:fixed;bottom:2rem;right:2rem;z-index:2000;">', 
+            unsafe_allow_html=True)
+if st.button("🐱", key="chat_fab_btn"):
+    st.session_state["chat_open"] = not st.session_state.get("chat_open", False)
+    st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Fenêtre chat
+if st.session_state.get("chat_open", False):
+    st.markdown("""
+    <div class="chat-window" style="
+        position:fixed; bottom:5.5rem; right:2rem;
+        width:340px; height:480px;
+        background:white; border-radius:20px;
+        box-shadow:0 20px 60px rgba(0,0,0,0.15);
+        z-index:1999; display:flex; flex-direction:column;
+        border:1px solid #ece9e4; overflow:hidden;">
+        <div class="chat-header">
+            <div style="font-size:1.5rem;">🐱</div>
+            <div>
+                <div class="chat-header-title">FactureCat</div>
+                <div class="chat-header-sub">Assistant comptable IA 🐾</div>
+            </div>
+        </div>
+        <div class="chat-messages">
+    """, unsafe_allow_html=True)
+
+    for msg in st.session_state.get("chat_messages", [])[-8:]:
+        if msg["role"] == "bot":
+            st.markdown(f"""
+            <div class="msg-bot">
+                <div style="font-size:1.2rem;">🐱</div>
+                <div class="bubble">{msg["content"]}</div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="msg-user">
+                <div class="bubble">{msg["content"]}</div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)  # fin chat-messages
+
+    col_inp, col_send = st.columns([4, 1])
+    with col_inp:
+        user_msg = st.text_input("", placeholder="Posez votre question…",
+                                 key="chat_input", label_visibility="collapsed")
+    with col_send:
+        send = st.button("➤", key="chat_send")
+
+    if send and user_msg.strip():
+        st.session_state.setdefault("chat_messages", []).append(
+            {"role": "user", "content": user_msg})
+        # ← votre logique de réponse ici
+        response = "Miaou ! Je traite votre question… 🐾"
+        st.session_state["chat_messages"].append(
+            {"role": "bot", "content": response})
+        st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)  # fin chat-window
+
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 4px; }
