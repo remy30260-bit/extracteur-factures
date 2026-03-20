@@ -280,9 +280,6 @@ def render_topnav(current_page):
             <span class="topnav-logo-icon">🐱</span>
             <span class="topnav-logo-text">FactureCat</span>
         </div>
-        <div style="color:#d4a882;font-size:0.8rem;">
-            Gestion comptable intelligente
-        </div>
     </div>
     <div class="page-content"></div>
     """, unsafe_allow_html=True)
@@ -310,18 +307,6 @@ def render_topnav(current_page):
                 else:
                     st.session_state["page"] = page_key
                 st.rerun()
-
-
-def hero(icon, title, subtitle):
-    st.markdown(f"""
-    <div style="display:flex; flex-direction:column; align-items:center; 
-                justify-content:center; text-align:center; 
-                padding: 3rem 1rem 1rem 1rem;">
-        <div style="font-size:4rem; margin-bottom:0.5rem;">{icon}</div>
-        <h1 style="margin:0; font-size:2rem; color:#a0522d;">{title}</h1>
-        <p style="color:#c8956c; font-size:1.1rem; margin-top:0.5rem;">{subtitle}</p>
-    </div>
-    """, unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -485,7 +470,7 @@ def show_dashboard():
 # COMPTABILITÉ (style Pennylane)
 # ═══════════════════════════════════════════════════════════════════════════════
 def show_comptabilite():
-    hero("📊", "Comptabilité", "Vision complète de vos finances · Style Pennylane 💼")
+    hero("📊", "Comptabilité", "Vision complète de vos finances 💼")
 
     factures = get_data("factures")
     notes    = get_data("notes_frais")
