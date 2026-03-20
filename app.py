@@ -858,8 +858,21 @@ def show_comptabilite():
 # ═══════════════════════════════════════════════════════════════════════════════
 # FACTURES avec APERÇU
 # ═══════════════════════════════════════════════════════════════════════════════
+
+def hero(icon, title, subtitle):
+    st.markdown(f"""
+    <div style="background:linear-gradient(135deg,#f0a070,#e8856a);
+         border-radius:24px; padding:2rem; margin-bottom:2rem; color:white;
+         box-shadow:0 8px 32px rgba(240,160,112,0.4);">
+        <h1 style="margin:0; font-size:2rem;">{icon} {title}</h1>
+        <p style="margin:0.5rem 0 0; opacity:0.9;">{subtitle}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
 def show_factures():
     hero("📄", "Gestion des Factures", "Import, analyse IA et prévisualisation 🔍")
+    ...
+
 
     if "resultats" not in st.session_state:
         st.session_state["resultats"] = []
