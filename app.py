@@ -29,7 +29,16 @@ def configure_gemini():
 # CSS GLOBAL
 # ═══════════════════════════════════════════════════════════════════════════════
 def inject_css():
-    st.markdown("""
+    st.markdown(/* ── CHATS ANIMÉS ── */
+@keyframes cat-bounce {
+    0%,100% { transform:translateY(0); }
+    50%      { transform:translateY(-8px); }
+}
+@keyframes cat-walk {
+    0%   { transform:translateX(-50%) rotate(-5deg); }
+    100% { transform:translateX(-50%) rotate(5deg) translateY(-2px); }
+}
+"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     * { font-family: 'Inter', sans-serif !important; }
