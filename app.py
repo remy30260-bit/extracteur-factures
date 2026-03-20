@@ -805,6 +805,7 @@ elif page == "factures":
                 and (flt_statut == "Tous" or f.get("statut") == flt_statut)
                 and (flt_cat == "Toutes" or f.get("categorie") == flt_cat)
             ]
+            
             filtered.sort(key=lambda x: str(x.get("date","")), reverse=True)
 
             col_list, col_detail = st.columns([5, 4])
