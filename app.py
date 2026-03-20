@@ -1185,7 +1185,7 @@ elif page == "notes_frais":
                 and (cat_ndf_filter == "Toutes" or n.get("categorie") == cat_ndf_filter)
                 and (stat_ndf_filter == "Tous"  or n.get("statut") == stat_ndf_filter)
             ]
-                        filtered_ndf.sort(key=lambda x: str(x.get("date", "")), reverse=True)
+            filtered_ndf.sort(key=lambda x: str(x.get("date", "")), reverse=True)
 
             col_nl, col_nv = st.columns([5, 4])
 
