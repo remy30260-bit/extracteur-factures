@@ -329,7 +329,7 @@ if page == "🏠 Tableau de bord":
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.markdown('<p style="color:#c8956c;font-size:0.85rem;text-align:center;padding:1rem 0;">Aucune facture pour l'instant</p>', unsafe_allow_html=True)
+            st.markdown('<p style="color:#c8956c;font-size:0.85rem;text-align:center;padding:1rem 0;">Aucune facture pour l&#39;instant</p>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_r:
@@ -386,14 +386,14 @@ elif page == "📄 Factures fournisseurs":
             noms_precedents = sorted(st.session_state.get("fichiers_extraits",[]))
             changed = noms_actuels != noms_precedents
             if changed and st.session_state["resultats"]:
-                st.warning("⚠️ Nouveaux fichiers détectés — relancez l'extraction.")
+                st.warning("⚠️ Nouveaux fichiers détectés — relancez l&#39;extraction.")
             st.markdown(f'''<div style="background:#fff8f3;border:2px solid #f0d5c0;border-radius:12px;
                 padding:0.75rem 1rem;margin:0.5rem 0;color:#a0522d;font-weight:700;font-size:0.85rem;">
                 🐱 {len(fichiers)} fichier(s) prêt(s) à analyser</div>''', unsafe_allow_html=True)
 
             col_b1,col_b2,col_b3 = st.columns([1,2,1])
             with col_b2:
-                lancer = st.button("🐾 Lancer l'extraction IA", use_container_width=True)
+                lancer = st.button("🐾 Lancer l&#39;extraction IA", use_container_width=True)
 
             if lancer and (changed or not st.session_state["resultats"]):
                 genai.configure(api_key=api_key)
@@ -469,7 +469,7 @@ elif page == "📄 Factures fournisseurs":
                         {badge_html(r.get("statut","—"))}</div></div>""", unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.info("Aucune facture analysée pour l'instant.")
+            st.info("Aucune facture analysée pour l&#39;instant.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -559,7 +559,7 @@ elif page == "🧾 Facturation clients":
         else:
             st.markdown("""<div style="text-align:center;padding:3rem 0;">
                 <div style="font-size:3rem;">🐱</div>
-                <p style="color:#a0522d;font-weight:700;">Aucune facture client pour l'instant</p>
+                <p style="color:#a0522d;font-weight:700;">Aucune facture client pour l&#39;instant</p>
                 <p style="color:#c8956c;font-size:0.85rem;">Créez votre première facture 🐾</p>
             </div>""", unsafe_allow_html=True)
 
@@ -606,7 +606,7 @@ elif page == "💰 Notes de frais":
             col_s1,col_s2,col_s3 = st.columns([1,2,1])
             with col_s2:
                 if st.form_submit_button("➕ Ajouter 🐾", use_container_width=True, type="primary"):
-                    if not nf_emp: st.error("Nom d'employé requis !")
+                    if not nf_emp: st.error("Nom d&#39;employé requis !")
                     elif nf_ht<=0: st.error("Montant > 0 !")
                     else:
                         st.session_state["notes_frais"].append({
@@ -657,7 +657,7 @@ elif page == "💰 Notes de frais":
         else:
             st.markdown("""<div style="text-align:center;padding:3rem 0;">
                 <div style="font-size:3rem;">🐱</div>
-                <p style="color:#a0522d;font-weight:700;">Aucune note de frais pour l'instant !</p>
+                <p style="color:#a0522d;font-weight:700;">Aucune note de frais pour l&#39;instant !</p>
                 <p style="color:#c8956c;font-size:0.85rem;">Ajoutez votre première dépense 🐾</p>
             </div>""", unsafe_allow_html=True)
 
@@ -776,7 +776,7 @@ elif page == "📊 Comptabilité":
             ("Ventes","TVA collectée sur ventes",tva_col,"badge-orange"),
             ("Achats fournisseurs","TVA déductible factures",tva_ded_four,"badge-green"),
             ("Notes de frais","TVA déductible NDF",tva_ded_ndf,"badge-green"),
-            ("SOLDE","TVA nette à reverser à l'État",tva_solde,"badge-red" if tva_solde>0 else "badge-green"),
+            ("SOLDE","TVA nette à reverser à l&#39;État",tva_solde,"badge-red" if tva_solde>0 else "badge-green"),
         ]
         for section,lbl,val,badge_cls in rows_tva:
             fw = "800" if section=="SOLDE" else "500"
@@ -816,7 +816,7 @@ elif page == "📊 Comptabilité":
         else:
             st.markdown("""<div style="text-align:center;padding:3rem 0;">
                 <div style="font-size:3rem;">🐱</div>
-                <p style="color:#a0522d;font-weight:700;">Aucune écriture pour l'instant</p>
+                <p style="color:#a0522d;font-weight:700;">Aucune écriture pour l&#39;instant</p>
                 <p style="color:#c8956c;font-size:0.85rem;">Vos écritures apparaîtront ici au fur et à mesure 🐾</p>
             </div>""", unsafe_allow_html=True)
 
@@ -875,7 +875,7 @@ elif page == "👥 Clients & Devis":
                 dv_num     = st.text_input("N° Devis", placeholder="DEV-2026-001")
                 dv_client  = st.text_input("Client")
                 dv_date    = st.date_input("Date", value=datetime.now())
-                dv_valid   = st.date_input("Validité jusqu'au")
+                dv_valid   = st.date_input("Validité jusqu&#39;au")
             with col2:
                 dv_desc    = st.text_area("Description / Objet", height=80)
                 dv_ht      = st.number_input("Montant HT (€)", min_value=0.0, step=0.01, format="%.2f")
@@ -908,4 +908,4 @@ elif page == "👥 Clients & Devis":
             with col_d1: st.download_button("📥 Exporter",data=buf,file_name="devis.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",use_container_width=True)
         else:
-            st.markdown('<p style="color:#c8956c;text-align:center;padding:1rem;">Aucun devis pour l'instant.</p>', unsafe_allow_html=True)
+            st.markdown('<p style="color:#c8956c;text-align:center;padding:1rem;">Aucun devis pour l&#39;instant.</p>', unsafe_allow_html=True)
