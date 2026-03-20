@@ -281,11 +281,7 @@ def render_topnav(current_page):
             <span class="topnav-logo-text">FactureCat</span>
         </div>
         <div style="color:#d4a882;font-size:0.8rem;">
-            Gestion comptable intelligente · Gemini 2.5 Flash
-        </div>
-        <div style="background:rgba(240,160,112,0.1);border:1px solid rgba(240,160,112,0.3);
-             border-radius:20px;padding:0.35rem 1rem;font-size:0.82rem;color:#a0522d;font-weight:500;">
-            👤 {user_email}
+            Gestion comptable intelligente
         </div>
     </div>
     <div class="page-content"></div>
@@ -318,9 +314,12 @@ def render_topnav(current_page):
 
 def hero(icon, title, subtitle):
     st.markdown(f"""
-    <div class="hero">
-        <h1>{icon} {title}</h1>
-        <p>{subtitle}</p>
+    <div style="display:flex; flex-direction:column; align-items:center; 
+                justify-content:center; text-align:center; 
+                padding: 3rem 1rem 1rem 1rem;">
+        <div style="font-size:4rem; margin-bottom:0.5rem;">{icon}</div>
+        <h1 style="margin:0; font-size:2rem; color:#a0522d;">{title}</h1>
+        <p style="color:#c8956c; font-size:1.1rem; margin-top:0.5rem;">{subtitle}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -397,7 +396,7 @@ def show_dashboard():
     
     # ... reste du code existant ...
 
-    hero("🏠", "Tableau de Bord", f"Bonjour 👋 · {datetime.now().strftime('%d %B %Y')}")
+    hero("🐱", "Bonjour !", "Je suis FactureCat, votre assistant comptable félin, prêt à vous aider 🐾")
 
     factures = get_data("factures")
     notes    = get_data("notes_frais")
