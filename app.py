@@ -273,6 +273,7 @@ if st.button("🐱", key="chat_fab_btn"):
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
+
 # Fenêtre chat
 if st.session_state.get("chat_open", False):
     st.markdown("""
