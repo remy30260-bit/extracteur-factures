@@ -100,13 +100,14 @@ for k, label in nav_items:
 
 st.markdown(f"""
 <div class="topbar">
-    <div class="topbar-logo">🐱 Facture<span>Cat</span></div>
+    <div class="topbar-logo">&#x1F431; Facture<span>Cat</span></div>
     <nav class="topbar-nav">{nav_html}</nav>
     <div class="topbar-right">
-        <div class="topbar-avatar">🐱</div>
+        <div class="topbar-avatar">&#x1F431;</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
+
 /* Rend les boutons nav visibles au survol */
 .nav-btn-row .stButton > button {
     background: transparent !important;
