@@ -328,15 +328,17 @@ if st.session_state.get("chat_open", False):
             {"role": "bot", "content": response})
         st.rerun()
 
-    st.markdown('</div>', unsafe_allow_html=True)  # fin chat-window
+   st.markdown('</div>', unsafe_allow_html=True)  # fin chat-window
 
-
+st.markdown("""
+<style>
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #e5e0d8; border-radius: 4px; }
 </style>
 """, unsafe_allow_html=True)
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
