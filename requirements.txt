@@ -1,8 +1,7 @@
-streamlit
-google-generativeai
-pandas
-PyMuPDF
-Pillow
-openpyxl
-supabase
-plotly
+streamlit>=1.32.0
+supabase>=2.4.0
+google-generativeai>=0.5.0
+pandas>=2.0.0
+openpyxl>=3.1.0
+Pillow>=10.0.0
+python-dotenv>=1.0.0
