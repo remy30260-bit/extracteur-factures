@@ -366,47 +366,30 @@ def get_data(table):
 # DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════════
 def show_dashboard():
-    
+
+    # Message de bienvenue unique en haut
     st.markdown("""
-    <div style="text-align:center;padding:1rem 0 0.5rem 0;">
-        <span style="font-size:3rem;animation:cat-bounce 2s ease-in-out infinite;
-              display:inline-block;">🐱</span>
-        <h1 style="color:#c8956c;font-weight:700;margin:0.5rem 0 0 0;">
-            Tableau de bord
-        </h1>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # ... reste du code existant de show_dashboard() ...
-# ← AJOUTEZ CES LIGNES ICI
-    st.markdown("""
-    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:2rem;
          background:rgba(240,160,112,0.08);border-radius:16px;padding:1rem 1.5rem;
          border:1px solid rgba(240,160,112,0.2);">
-        <div style="font-size:3rem;animation:cat-bounce 2s ease-in-out infinite;">🐱</div>
+        <div style="font-size:2.5rem;">🐱</div>
         <div>
             <h2 style="margin:0;color:#a0522d;font-weight:800;">Bonjour !</h2>
             <p style="margin:0;color:#c8956c;font-size:0.9rem;">
-                Votre assistant comptable félin est prêt 🐾
+                Je suis FactureCat, votre assistant comptable félin, prêt à vous aider 🐾
             </p>
         </div>
         <div style="margin-left:auto;font-size:1.5rem;opacity:0.4;">🐾 🐾 🐾</div>
     </div>
     """, unsafe_allow_html=True)
-    
-    # ... reste du code existant ...
-
-    hero("🐱", "Bonjour !", "Je suis FactureCat, votre assistant comptable félin, prêt à vous aider 🐾")
 
     factures = get_data("factures")
     notes    = get_data("notes_frais")
 
     total_ttc   = sum(float(f.get("montant_ttc",0)) for f in factures)
-    total_ht    = sum(float(f.get("montant_ht",0))  for f in factures)
     total_tva   = sum(float(f.get("tva",0))          for f in factures)
     a_payer     = sum(float(f.get("montant_ttc",0)) for f in factures if "payer" in str(f.get("statut","")).lower() and "payée" not in str(f.get("statut","")).lower())
     total_notes = sum(float(n.get("montant_ttc",0)) for n in notes)
-    payees      = sum(1 for f in factures if "Payée" in str(f.get("statut","")))
 
     # KPIs
     k1, k2, k3, k4, k5 = st.columns(5)
