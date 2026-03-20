@@ -885,89 +885,156 @@ def show_factures():
 
     # ── Import ───────────────────────────────────────────────────────────────
     with tab1:
-        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+    col_upload, col_preview = st.columns([1, 1])
 
-        # Layout : upload à gauche, preview à droite
-        col_upload, col_preview = st.columns([1, 1])
+    with col_upload:
+        uploaded_files = st.file_uploader(
+            "Glissez vos factures (PDF ou image)",
+            type=["pdf","png","jpg","jpeg"],
+            accept_multiple_files=True,
+            key="facture_uploader"
+        )
 
-        with col_upload:
-            uploaded_files = st.file_uploader(
-                "Glissez vos factures (PDF ou image)",
-                type=["pdf","png","jpg","jpeg"],
-                accept_multiple_files=True,
-                key="facture_uploader"
-            )
+        if uploaded_files:
+            existing_names = {r.get("fichier","") for r in get_data("factures")}
+            new_files = [f for f in uploaded_files if f.name not in existing_names]
+            already   = [f for f in uploaded_files if f.name in existing_names]
 
-            if uploaded_files:
-                # Dédoublonnage
-                existing_names = {r.get("fichier","") for r in get_data("factures")}
-                new_files = [f for f in uploaded_files if f.name not in existing_names]
-                already   = [f for f in uploaded_files if f.name in existing_names]
+            if already:
+                st.warning(f"⚠️ {len(already)} fichier(s) déjà importé(s) ignoré(s)")
 
-                if already:
-                    st.warning(f"⚠️ {len(already)} fichier(s) déjà importé(s) ignoré(s)")
+            if new_files:
+                st.markdown(f"""
+                <div style="background:#fff8f0;border-radius:14px;padding:0.8rem 1.2rem;
+                     border:2px solid rgba(240,160,112,0.3);margin:0.5rem 0;">
+                    <span style="color:#a0522d;font-weight:600;">
+                        📁 {len(new_files)} nouveau(x) fichier(s)
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
 
-                if new_files:
-                    st.markdown(f"""
-                    <div style="background:#fff8f0;border-radius:14px;padding:0.8rem 1.2rem;
-                         border:2px solid rgba(240,160,112,0.3);margin:0.5rem 0;">
-                        <span style="color:#a0522d;font-weight:600;">
-                            📁 {len(new_files)} nouveau(x) fichier(s)
-                        </span>
-                    </div>
-                    """, unsafe_allow_html=True)
+                names = [f.name for f in new_files]
+                selected_preview = st.selectbox("👁️ Prévisualiser", names, key="select_preview")
 
-                    # Sélecteur de prévisualisation avant analyse
-                    names = [f.name for f in new_files]
-                    selected_preview = st.selectbox("👁️ Prévisualiser", names, key="select_preview")
+                # ── Preview : lire + seek(0) ──
+                for f in new_files:
+                    if f.name == selected_preview:
+                        f.seek(0)
+                        content = f.read()
+                        f.seek(0)
+                        if f.name.lower().endswith(".pdf"):
+                            imgs = pdf_to_images(content)
+                        else:
+                            imgs = [Image.open(io.BytesIO(content))]
+                        st.session_state["current_preview"] = imgs
+                        st.session_state["current_preview_name"] = f.name
+                        break
 
-                    for f in new_files:
-                        if f.name == selected_preview:
+                if st.button("🔍 Analyser avec Gemini 2.5",
+                             use_container_width=True, key="btn_analyser"):
+                    model = configure_gemini()
+                    if not model:
+                        st.error("❌ Clé API Gemini manquante")
+                    else:
+                        progress = st.progress(0)
+                        status   = st.empty()
+                        results  = []
+
+                        for i, f in enumerate(new_files):
+                            status.markdown(f"""
+                            <div style="background:#fff8f0;border-radius:12px;padding:0.8rem;
+                                 border-left:4px solid #f0a070;">
+                                🔍 Analyse : <b>{f.name}</b>…
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                            # ── Lecture propre ──
+                            f.seek(0)
                             content = f.read()
                             f.seek(0)
+
                             if f.name.lower().endswith(".pdf"):
-                                imgs = pdf_to_images(content)
-                                st.session_state["current_preview"] = imgs
+                                images = pdf_to_images(content)
                             else:
-                                img = Image.open(io.BytesIO(content))
-                                st.session_state["current_preview"] = [img]
-                            st.session_state["current_preview_name"] = f.name
+                                images = [Image.open(io.BytesIO(content))]
 
-                    if st.button("🔍 Analyser avec Gemini 2.5",
-                                 use_container_width=True, key="btn_analyser"):
-                        model = configure_gemini()
-                        if not model:
-                            st.error("❌ Clé API Gemini manquante")
-                        else:
-                            progress = st.progress(0)
-                            status   = st.empty()
-                            for i, f in enumerate(new_files):
-                                status.markdown(f"""
-                                <div style="background:#fff8f0;border-radius:12px;padding:0.8rem;
-                                     border-left:4px solid #f0a070;">
-                                    🔍 Analyse : <b>{f.name}</b>…
-                                </div>
-                                """, unsafe_allow_html=True)
-                                content = f.read()
-                                images  = pdf_to_images(content) if f.name.lower().endswith(".pdf") \
-                                          else [Image.open(io.BytesIO(content))]
-                                result  = extraire_facture(model, images)
-                                result["fichier"] = f.name
+                            result = extraire_facture(model, images)
+                            result["fichier"] = f.name
+                            results.append((f.name, result, images))
 
-                                # Sauvegarde préview
-                                if f.name == st.session_state.get("current_preview_name",""):
-                                    st.session_state["current_preview"] = images
+                            progress.progress((i+1)/len(new_files))
 
-                                try:
-                                    supabase = get_supabase()
-                                    uid = st.session_state.get("user_id","")
-                                    supabase.table("factures").insert({**result,"user_id":uid}).execute()
-                                except:
-                                    st.session_state["resultats"].append(result)
+                        # ── Sauvegarde après analyse ──
+                        saved = 0
+                        for fname, result, images in results:
+                            if fname == st.session_state.get("current_preview_name",""):
+                                st.session_state["current_preview"] = images
 
-                                progress.progress((i+1)/len(new_files))
-                            status.success(f"✅ {len(new_files)} facture(s) analysée(s) !")
-                            st.rerun()
+                            try:
+                                supabase = get_supabase()
+                                uid = st.session_state.get("user_id","")
+                                supabase.table("factures").insert(
+                                    {**result, "user_id": uid}
+                                ).execute()
+                                saved += 1
+                            except Exception as e:
+                                st.session_state["resultats"].append(result)
+                                saved += 1
+
+                        status.success(f"✅ {saved} facture(s) analysée(s) et sauvegardée(s) !")
+
+                        # ── Affichage résultats ──
+                        st.markdown("---")
+                        st.markdown("### 📋 Résultats de l'analyse")
+                        for fname, result, _ in results:
+                            with st.expander(f"📄 {fname}", expanded=True):
+                                c1, c2, c3 = st.columns(3)
+                                with c1:
+                                    st.markdown(f"""
+                                    <div style="background:rgba(240,160,112,0.08);border-radius:12px;
+                                         padding:1rem;border:1px solid rgba(240,160,112,0.2);">
+                                        <div style="color:#c8956c;font-size:0.8rem;font-weight:600;">🏢 Fournisseur</div>
+                                        <div style="color:#a0522d;font-weight:700;font-size:1rem;">
+                                            {result.get('fournisseur','—')}
+                                        </div>
+                                        <div style="color:#c8956c;font-size:0.8rem;margin-top:0.5rem;">🔢 N°</div>
+                                        <div style="color:#a0522d;font-weight:600;">{result.get('numero','—')}</div>
+                                        <div style="color:#c8956c;font-size:0.8rem;margin-top:0.5rem;">📅 Date</div>
+                                        <div style="color:#a0522d;font-weight:600;">{result.get('date','—')}</div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                with c2:
+                                    st.markdown(f"""
+                                    <div style="background:rgba(240,160,112,0.08);border-radius:12px;
+                                         padding:1rem;border:1px solid rgba(240,160,112,0.2);">
+                                        <div style="color:#c8956c;font-size:0.8rem;font-weight:600;">💵 Montant HT</div>
+                                        <div style="color:#68d391;font-weight:700;font-size:1.1rem;">
+                                            {float(result.get('montant_ht',0)):.2f} €
+                                        </div>
+                                        <div style="color:#c8956c;font-size:0.8rem;margin-top:0.5rem;">📊 TVA</div>
+                                        <div style="color:#b794f4;font-weight:700;font-size:1.1rem;">
+                                            {float(result.get('tva',0)):.2f} €
+                                        </div>
+                                        <div style="color:#c8956c;font-size:0.8rem;margin-top:0.5rem;">💰 TTC</div>
+                                        <div style="color:#f0a070;font-weight:700;font-size:1.2rem;">
+                                            {float(result.get('montant_ttc',0)):.2f} €
+                                        </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                with c3:
+                                    st.markdown(f"""
+                                    <div style="background:rgba(240,160,112,0.08);border-radius:12px;
+                                         padding:1rem;border:1px solid rgba(240,160,112,0.2);">
+                                        <div style="color:#c8956c;font-size:0.8rem;font-weight:600;">📂 Catégorie</div>
+                                        <div style="color:#a0522d;font-weight:700;">{result.get('categorie','—')}</div>
+                                        <div style="color:#c8956c;font-size:0.8rem;margin-top:0.5rem;">🏷️ Statut</div>
+                                        <div style="color:#f6ad55;font-weight:700;">{result.get('statut','—')}</div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+
+                        st.rerun()
+
 
         # ── Preview droite ──
         with col_preview:
