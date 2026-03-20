@@ -1,3 +1,31 @@
+import streamlit as st
+import google.generativeai as genai
+import pandas as pd
+import json
+import fitz
+from PIL import Image
+import io
+from datetime import datetime
+import plotly.express as px
+import plotly.graph_objects as go
+from supabase import create_client
+
+st.set_page_config(page_title="FactureCat 🐱", page_icon="🐱", layout="wide")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SUPABASE & GEMINI
+# ═══════════════════════════════════════════════════════════════════════════════
+def get_supabase():
+    return create_client(st.secrets["supabase"]["url"], st.secrets["supabase"]["key"])
+
+def configure_gemini():
+    try:
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        return genai.GenerativeModel("gemini-2.5-flash")
+    except:
+        return None
+
+# 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CSS GLOBAL
 # ═══════════════════════════════════════════════════════════════════════════════
