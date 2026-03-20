@@ -29,16 +29,52 @@ def configure_gemini():
 # CSS GLOBAL
 # ═══════════════════════════════════════════════════════════════════════════════
 def inject_css():
-    st.markdown(/* ── CHATS ANIMÉS ── */
-@keyframes cat-bounce {
-    0%,100% { transform:translateY(0); }
-    50%      { transform:translateY(-8px); }
-}
-@keyframes cat-walk {
-    0%   { transform:translateX(-50%) rotate(-5deg); }
-    100% { transform:translateX(-50%) rotate(5deg) translateY(-2px); }
-}
-"""
+    def render_cat_widget():
+    import random
+    import streamlit.components.v1 as components
+    msg = random.choice(["Miaou ! 📄","Facture prête !","Tout est OK ! ✅","Je veille sur vos factures 🐾"])
+    components.html(f"""
+    <div style="position:fixed;bottom:20px;right:20px;z-index:9999;
+         animation:cat-bounce 2s ease-in-out infinite;font-family:Inter,sans-serif;">
+        <div id="bubble" style="position:absolute;bottom:60px;right:0;
+             background:white;border:2px solid #f0a070;border-radius:16px 16px 4px 16px;
+             padding:0.5rem 0.8rem;font-size:0.75rem;color:#c8956c;font-weight:600;
+             white-space:nowrap;opacity:0;transition:all 0.3s;
+             box-shadow:0 4px 12px rgba(200,149,108,0.2);">{msg}</div>
+        <div style="font-size:2.5rem;filter:drop-shadow(0 4px 8px rgba(200,149,108,0.4));
+             cursor:pointer;transition:transform 0.2s;"
+             onmouseover="document.getElementById('bubble').style.opacity='1';
+                          this.style.transform='scale(1.2) rotate(-10deg)'"
+             onmouseout="document.getElementById('bubble').style.opacity='0';
+                         this.style.transform='scale(1)'">🐱</div>
+    </div>
+    <style>
+    @keyframes cat-bounce {{
+        0%,100% {{ transform:translateY(0); }}
+        50%      {{ transform:translateY(-8px); }}
+    }}
+    </style>
+    """, height=80)
+
+
+def cat_progress_bar(value: float, label: str = ""):
+    pct = int(value * 100)
+    st.markdown(f"""
+    {f'<div style="font-size:0.8rem;color:#c8956c;font-weight:600;margin-bottom:4px;">{label}</div>' if label else ''}
+    <div style="position:relative;background:rgba(240,160,112,0.1);
+         border-radius:20px;height:28px;margin:0.5rem 0;
+         border:1px solid rgba(240,160,112,0.3);overflow:visible;">
+        <div style="width:{pct}%;height:100%;border-radius:20px;
+             background:linear-gradient(90deg,#f0c090,#f0a070);"></div>
+        <span style="position:absolute;top:-8px;left:{max(pct,3)}%;
+              font-size:1.4rem;transform:translateX(-50%);">🐱</span>
+        <span style="position:absolute;right:8px;top:50%;
+              transform:translateY(-50%);font-size:0.75rem;
+              color:#c8956c;font-weight:700;">{pct}%</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     * { font-family: 'Inter', sans-serif !important; }
@@ -208,7 +244,18 @@ def inject_css():
     /* ── PROGRESS ── */
     .stProgress>div>div { background:linear-gradient(90deg,#f0a070,#e8856a) !important; border-radius:10px !important; }
     </style>
-    """, unsafe_allow_html=True)
+    
+    /* ── CHATS ANIMÉS ── */
+@keyframes cat-bounce {
+    0%,100% { transform:translateY(0); }
+    50%      { transform:translateY(-8px); }
+}
+@keyframes cat-walk {
+    0%   { transform:translateX(-50%) rotate(-5deg); }
+    100% { transform:translateX(-50%) rotate(5deg) translateY(-2px); }
+}
+
+""", unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -309,6 +356,24 @@ def get_data(table):
 # DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════════
 def show_dashboard():
+    # ← AJOUTEZ CES LIGNES ICI
+    st.markdown("""
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;
+         background:rgba(240,160,112,0.08);border-radius:16px;padding:1rem 1.5rem;
+         border:1px solid rgba(240,160,112,0.2);">
+        <div style="font-size:3rem;animation:cat-bounce 2s ease-in-out infinite;">🐱</div>
+        <div>
+            <h2 style="margin:0;color:#a0522d;font-weight:800;">Bonjour !</h2>
+            <p style="margin:0;color:#c8956c;font-size:0.9rem;">
+                Votre assistant comptable félin est prêt 🐾
+            </p>
+        </div>
+        <div style="margin-left:auto;font-size:1.5rem;opacity:0.4;">🐾 🐾 🐾</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # ... reste du code existant ...
+
     hero("🏠", "Tableau de Bord", f"Bonjour 👋 · {datetime.now().strftime('%d %B %Y')}")
 
     factures = get_data("factures")
@@ -1489,6 +1554,8 @@ def main():
         show_login()
         return
 
+    render_cat_widget()  # ← AJOUTEZ CETTE LIGNE ICI
+
     current_page = st.session_state.get("page", "🏠 Dashboard")
     render_topnav(current_page)
 
@@ -1505,4 +1572,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
