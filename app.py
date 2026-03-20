@@ -356,7 +356,19 @@ def get_data(table):
 # DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════════
 def show_dashboard():
-    # ← AJOUTEZ CES LIGNES ICI
+    
+    st.markdown("""
+    <div style="text-align:center;padding:1rem 0 0.5rem 0;">
+        <span style="font-size:3rem;animation:cat-bounce 2s ease-in-out infinite;
+              display:inline-block;">🐱</span>
+        <h1 style="color:#c8956c;font-weight:700;margin:0.5rem 0 0 0;">
+            Tableau de bord
+        </h1>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # ... reste du code existant de show_dashboard() ...
+# ← AJOUTEZ CES LIGNES ICI
     st.markdown("""
     <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;
          background:rgba(240,160,112,0.08);border-radius:16px;padding:1rem 1.5rem;
@@ -1486,6 +1498,49 @@ Question : {user_input}"""
             st.session_state["chat_messages"] = []
             st.rerun()
 
+def render_cat_widget():
+    import random
+    import streamlit.components.v1 as components
+    msg = random.choice(["Miaou ! 📄","Facture prête !","Tout est OK ! ✅","Je veille sur vos factures 🐾"])
+    components.html(f"""
+    <div style="position:fixed;bottom:20px;right:20px;z-index:9999;
+         font-family:Inter,sans-serif;">
+        <div id="bubble" style="position:absolute;bottom:60px;right:0;
+             background:white;border:2px solid #f0a070;border-radius:16px 16px 4px 16px;
+             padding:0.5rem 0.8rem;font-size:0.75rem;color:#c8956c;font-weight:600;
+             white-space:nowrap;opacity:0;transition:all 0.3s;
+             box-shadow:0 4px 12px rgba(200,149,108,0.2);">{msg}</div>
+        <div style="font-size:2.5rem;cursor:pointer;transition:transform 0.2s;"
+             onmouseover="document.getElementById('bubble').style.opacity='1';
+                          this.style.transform='scale(1.2) rotate(-10deg)'"
+             onmouseout="document.getElementById('bubble').style.opacity='0';
+                         this.style.transform='scale(1)'">🐱</div>
+    </div>
+    <style>
+    @keyframes cat-bounce {{
+        0%,100% {{ transform:translateY(0); }}
+        50%      {{ transform:translateY(-8px); }}
+    }}
+    </style>
+    """, height=80)
+
+
+def cat_progress_bar(value: float, label: str = ""):
+    pct = int(value * 100)
+    st.markdown(f"""
+    {f'<div style="font-size:0.8rem;color:#c8956c;font-weight:600;margin-bottom:4px;">{label}</div>' if label else ''}
+    <div style="position:relative;background:rgba(240,160,112,0.1);
+         border-radius:20px;height:28px;margin:0.5rem 0;
+         border:1px solid rgba(240,160,112,0.3);overflow:visible;">
+        <div style="width:{pct}%;height:100%;border-radius:20px;
+             background:linear-gradient(90deg,#f0c090,#f0a070);"></div>
+        <span style="position:absolute;top:-8px;left:{max(pct-2,1)}%;
+              font-size:1.4rem;transform:translateX(-50%);">🐱</span>
+        <span style="position:absolute;right:8px;top:50%;
+              transform:translateY(-50%);font-size:0.75rem;
+              color:#c8956c;font-weight:700;">{pct}%</span>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN
