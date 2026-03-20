@@ -871,8 +871,6 @@ def hero(icon, title, subtitle):
 
 def show_factures():
     hero("📄", "Gestion des Factures", "Import, analyse IA et prévisualisation 🔍")
-    ...
-
 
     if "resultats" not in st.session_state:
         st.session_state["resultats"] = []
@@ -883,23 +881,36 @@ def show_factures():
 
     tab1, tab2, tab3 = st.tabs(["📤 Import & Analyse", "📋 Liste & Aperçu", "📊 Export"])
 
-    # ── Import ───────────────────────────────────────────────────────────────
-       # ── Import ───────────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════
+    # TAB 1 : IMPORT & ANALYSE
+    # ══════════════════════════════════════════════════════
     with tab1:
         st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
-        col_upload, col_preview = st.columns([1, 1])
 
-        with col_upload:
-            uploaded_files = st.file_uploader(
-                "Glissez vos factures (PDF ou image)",
-                type=["pdf","png","jpg","jpeg"],
-                accept_multiple_files=True,
-                key="facture_uploader"
-            )
+        # ── Bulle chat ──
+        st.markdown("""
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+            <div style="font-size:3rem;">🐱</div>
+            <div style="background:rgba(240,160,112,0.1);border-radius:18px 18px 18px 4px;
+                 padding:1rem 1.5rem;border:1px solid rgba(240,160,112,0.3);">
+                <b style="color:#a0522d;">Bonjour ! Je suis FactureCat 🐾</b><br>
+                <span style="color:#c8956c;">
+                    Déposez vos factures ci-dessous et je m'occupe de tout extraire !
+                </span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
+        # ── Upload pleine largeur ──
+        uploaded_files = st.file_uploader(
+            "🐾 Glissez vos factures ici (PDF ou image)",
+            type=["pdf", "png", "jpg", "jpeg"],
+            accept_multiple_files=True,
+            key="facture_uploader"
+        )
 
         if uploaded_files:
-            existing_names = {r.get("fichier","") for r in get_data("factures")}
+            existing_names = {r.get("fichier", "") for r in get_data("factures")}
             new_files = [f for f in uploaded_files if f.name not in existing_names]
             already   = [f for f in uploaded_files if f.name in existing_names]
 
@@ -911,7 +922,7 @@ def show_factures():
                 <div style="background:#fff8f0;border-radius:14px;padding:0.8rem 1.2rem;
                      border:2px solid rgba(240,160,112,0.3);margin:0.5rem 0;">
                     <span style="color:#a0522d;font-weight:600;">
-                        📁 {len(new_files)} nouveau(x) fichier(s)
+                        🐱 Miaou ! {len(new_files)} nouveau(x) fichier(s) détecté(s) 🐾
                     </span>
                 </div>
                 """, unsafe_allow_html=True)
@@ -919,7 +930,7 @@ def show_factures():
                 names = [f.name for f in new_files]
                 selected_preview = st.selectbox("👁️ Prévisualiser", names, key="select_preview")
 
-                # ── Preview : lire + seek(0) ──
+                # ── Preview ──
                 for f in new_files:
                     if f.name == selected_preview:
                         f.seek(0)
@@ -933,8 +944,34 @@ def show_factures():
                         st.session_state["current_preview_name"] = f.name
                         break
 
-                if st.button("🔍 Analyser avec Gemini 2.5",
-                             use_container_width=True, key="btn_analyser"):
+                # ── Aperçu inline ──
+                if st.session_state.get("current_preview"):
+                    imgs = st.session_state["current_preview"]
+                    fname = st.session_state.get("current_preview_name", "")
+                    st.markdown(f"""
+                    <div style="background:rgba(240,160,112,0.08);border-radius:10px;
+                         padding:0.5rem 1rem;margin:0.5rem 0;font-size:0.82rem;
+                         color:#a0522d;font-weight:600;">
+                        📄 {fname} · {len(imgs)} page(s)
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    if len(imgs) > 1:
+                        page_idx = st.slider("Page", 1, len(imgs), 1, key="preview_page") - 1
+                        st.image(imgs[page_idx], use_column_width=True)
+                    else:
+                        st.image(imgs[0], use_column_width=True)
+
+                # ── Bouton centré ──
+                col_btn = st.columns([1, 2, 1])
+                with col_btn[1]:
+                    analyser = st.button(
+                        "🔍 Analyser avec Gemini 2.5",
+                        use_container_width=True,
+                        key="btn_analyser"
+                    )
+
+                if analyser:
                     model = configure_gemini()
                     if not model:
                         st.error("❌ Clé API Gemini manquante")
@@ -951,7 +988,6 @@ def show_factures():
                             </div>
                             """, unsafe_allow_html=True)
 
-                            # ── Lecture propre ──
                             f.seek(0)
                             content = f.read()
                             f.seek(0)
@@ -964,29 +1000,27 @@ def show_factures():
                             result = extraire_facture(model, images)
                             result["fichier"] = f.name
                             results.append((f.name, result, images))
+                            progress.progress((i + 1) / len(new_files))
 
-                            progress.progress((i+1)/len(new_files))
-
-                        # ── Sauvegarde après analyse ──
+                        # ── Sauvegarde ──
                         saved = 0
                         for fname, result, images in results:
-                            if fname == st.session_state.get("current_preview_name",""):
+                            if fname == st.session_state.get("current_preview_name", ""):
                                 st.session_state["current_preview"] = images
-
                             try:
                                 supabase = get_supabase()
-                                uid = st.session_state.get("user_id","")
+                                uid = st.session_state.get("user_id", "")
                                 supabase.table("factures").insert(
                                     {**result, "user_id": uid}
                                 ).execute()
                                 saved += 1
-                            except Exception as e:
+                            except Exception:
                                 st.session_state["resultats"].append(result)
                                 saved += 1
 
                         status.success(f"✅ {saved} facture(s) analysée(s) et sauvegardée(s) !")
 
-                        # ── Affichage résultats ──
+                        # ── Résultats ──
                         st.markdown("---")
                         st.markdown("### 📋 Résultats de l'analyse")
                         for fname, result, _ in results:
@@ -997,9 +1031,7 @@ def show_factures():
                                     <div style="background:rgba(240,160,112,0.08);border-radius:12px;
                                          padding:1rem;border:1px solid rgba(240,160,112,0.2);">
                                         <div style="color:#c8956c;font-size:0.8rem;font-weight:600;">🏢 Fournisseur</div>
-                                        <div style="color:#a0522d;font-weight:700;font-size:1rem;">
-                                            {result.get('fournisseur','—')}
-                                        </div>
+                                        <div style="color:#a0522d;font-weight:700;">{result.get('fournisseur','—')}</div>
                                         <div style="color:#c8956c;font-size:0.8rem;margin-top:0.5rem;">🔢 N°</div>
                                         <div style="color:#a0522d;font-weight:600;">{result.get('numero','—')}</div>
                                         <div style="color:#c8956c;font-size:0.8rem;margin-top:0.5rem;">📅 Date</div>
@@ -1037,103 +1069,63 @@ def show_factures():
 
                         st.rerun()
 
-
-        # ── Preview droite ──
-        with col_preview:
+        else:
+            # ── Aucun fichier ──
             st.markdown("""
-            <div class="invoice-viewer">
-                <div class="invoice-viewer-header">
-                    <span class="invoice-viewer-title">👁️ Aperçu de la facture</span>
-                </div>
+            <div style="text-align:center;padding:3rem;background:rgba(240,160,112,0.05);
+                 border-radius:24px;border:2px dashed rgba(240,160,112,0.3);margin-top:1rem;">
+                <div style="font-size:4rem;">🐱</div>
+                <p style="font-size:1.1rem;font-weight:700;color:#a0522d;margin-top:1rem;">
+                    Uploadez vos factures pour commencer !
+                </p>
+                <p style="color:#c8956c;">Je suis prêt à analyser vos documents 🐾</p>
+            </div>
             """, unsafe_allow_html=True)
 
-            if st.session_state.get("current_preview"):
-                imgs = st.session_state["current_preview"]
-                fname = st.session_state.get("current_preview_name","")
-
-                st.markdown(f"""
-                <div style="background:rgba(240,160,112,0.08);border-radius:10px;
-                     padding:0.5rem 1rem;margin-bottom:0.8rem;font-size:0.82rem;
-                     color:#a0522d;font-weight:600;">
-                    📄 {fname}  ·  {len(imgs)} page(s)
-                </div>
-                """, unsafe_allow_html=True)
-
-                if len(imgs) > 1:
-                    page_idx = st.slider("Page", 1, len(imgs), 1, key="preview_page") - 1
-                    st.image(imgs[page_idx], use_column_width=True)
-                else:
-                    st.image(imgs[0], use_column_width=True)
-
-                # Zoom toggle
-                if st.button("🔍 Agrandir", key="zoom_btn", use_container_width=True):
-                    st.session_state["zoom_preview"] = not st.session_state.get("zoom_preview", False)
-
-                if st.session_state.get("zoom_preview", False):
-                    with st.expander("🔍 Vue agrandie", expanded=True):
-                        for img in imgs:
-                            st.image(img, use_column_width=True)
-            else:
-                st.markdown("""
-                <div style="text-align:center;padding:4rem 2rem;">
-                    <div style="font-size:4rem;margin-bottom:1rem;">📄</div>
-                    <p style="color:#c8956c;font-weight:600;">Sélectionnez un fichier</p>
-                    <p style="color:#d4a882;font-size:0.85rem;">
-                        L'aperçu apparaîtra ici
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    # ── Liste & Aperçu ───────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════
+    # TAB 2 : LISTE & APERÇU
+    # ══════════════════════════════════════════════════════
     with tab2:
         st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
         factures = get_data("factures")
 
         if factures:
-            # Filtres
             col_f1, col_f2, col_f3, col_f4 = st.columns(4)
             with col_f1:
                 search = st.text_input("🔍 Rechercher", key="fact_search")
             with col_f2:
-                cats = ["Toutes"] + sorted(set(f.get("categorie","") for f in factures))
+                cats = ["Toutes"] + sorted(set(f.get("categorie", "") for f in factures))
                 cat_filter = st.selectbox("📂 Catégorie", cats, key="fact_cat")
             with col_f3:
-                statuts = ["Tous"] + sorted(set(f.get("statut","") for f in factures))
+                statuts = ["Tous"] + sorted(set(f.get("statut", "") for f in factures))
                 stat_filter = st.selectbox("🏷️ Statut", statuts, key="fact_stat")
             with col_f4:
-                sort_by = st.selectbox("↕️ Trier par", ["Date ↓","Date ↑","Montant ↓","Montant ↑"], key="fact_sort")
+                sort_by = st.selectbox("↕️ Trier par",
+                    ["Date ↓", "Date ↑", "Montant ↓", "Montant ↑"], key="fact_sort")
 
             filtered = [f for f in factures
-                        if (not search or search.lower() in str(f.get("fournisseur","")).lower())
+                        if (not search or search.lower() in str(f.get("fournisseur", "")).lower())
                         and (cat_filter == "Toutes" or f.get("categorie") == cat_filter)
                         and (stat_filter == "Tous" or f.get("statut") == stat_filter)]
 
             if sort_by == "Date ↓":
-                filtered.sort(key=lambda x: str(x.get("date","")), reverse=True)
+                filtered.sort(key=lambda x: str(x.get("date", "")), reverse=True)
             elif sort_by == "Date ↑":
-                filtered.sort(key=lambda x: str(x.get("date","")))
+                filtered.sort(key=lambda x: str(x.get("date", "")))
             elif sort_by == "Montant ↓":
-                filtered.sort(key=lambda x: float(x.get("montant_ttc",0)), reverse=True)
+                filtered.sort(key=lambda x: float(x.get("montant_ttc", 0)), reverse=True)
             else:
-                filtered.sort(key=lambda x: float(x.get("montant_ttc",0)))
+                filtered.sort(key=lambda x: float(x.get("montant_ttc", 0)))
 
             st.markdown(f"<p style='color:#c8956c;font-size:0.85rem;margin-bottom:1rem;'>"
                         f"<b>{len(filtered)}</b> résultat(s)</p>", unsafe_allow_html=True)
 
-            # Layout liste + preview
             col_list, col_view = st.columns([1, 1])
 
             with col_list:
                 for idx, r in enumerate(filtered):
-                    statut = r.get("statut","À payer")
-                    badge_color = "#68d391" if "Payée" in statut else (
-                        "#fc8181" if "retard" in statut.lower() else "#f6ad55")
-                    ttc = float(r.get("montant_ttc",0))
-
+                    ttc = float(r.get("montant_ttc", 0))
                     selected = st.session_state.get("selected_facture_idx") == idx
-
                     if st.button(
                         f"{'▶' if selected else '○'}  {r.get('fournisseur','—')[:22]}  ·  "
                         f"{r.get('date','—')}  ·  {ttc:.2f} €",
@@ -1151,37 +1143,30 @@ def show_factures():
                     st.markdown(f"""
                     <div class="invoice-viewer">
                         <div class="invoice-viewer-header">
-                            <span class="invoice-viewer-title">
-                                📄 {r.get('fournisseur','—')}
-                            </span>
-                            <span style="font-size:0.8rem;color:#c8956c;">
-                                {r.get('date','—')}
-                            </span>
+                            <span class="invoice-viewer-title">📄 {r.get('fournisseur','—')}</span>
+                            <span style="font-size:0.8rem;color:#c8956c;">{r.get('date','—')}</span>
                         </div>
                     """, unsafe_allow_html=True)
 
-                    # Détails
                     fields = [
-                        ("🏢 Fournisseur", r.get("fournisseur","—")),
-                        ("🔢 N° Facture",  r.get("numero","—")),
-                        ("📅 Date",         r.get("date","—")),
-                        ("📂 Catégorie",    r.get("categorie","—")),
-                        ("💵 Montant HT",   f"{float(r.get('montant_ht',0)):.2f} €"),
-                        ("📊 TVA",          f"{float(r.get('tva',0)):.2f} €"),
-                        ("💰 Montant TTC",  f"{float(r.get('montant_ttc',0)):.2f} €"),
-                        ("🏷️ Statut",       r.get("statut","—")),
+                        ("🏢 Fournisseur", r.get("fournisseur", "—")),
+                        ("🔢 N° Facture",  r.get("numero", "—")),
+                        ("📅 Date",        r.get("date", "—")),
+                        ("📂 Catégorie",   r.get("categorie", "—")),
+                        ("💵 Montant HT",  f"{float(r.get('montant_ht',0)):.2f} €"),
+                        ("📊 TVA",         f"{float(r.get('tva',0)):.2f} €"),
+                        ("💰 Montant TTC", f"{float(r.get('montant_ttc',0)):.2f} €"),
+                        ("🏷️ Statut",      r.get("statut", "—")),
                     ]
                     for label, val in fields:
                         st.markdown(f"""
                         <div style="display:flex;justify-content:space-between;
                              padding:0.5rem 0;border-bottom:1px solid rgba(240,160,112,0.1);">
                             <span style="color:#c8956c;font-size:0.85rem;">{label}</span>
-                            <b style="color:#
-                                                        <b style="color:#a0522d;font-size:0.85rem;">{val}</b>
+                            <b style="color:#a0522d;font-size:0.85rem;">{val}</b>
                         </div>
                         """, unsafe_allow_html=True)
 
-                    # Montants en cards
                     st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
                     m1, m2, m3 = st.columns(3)
                     for col_m, label, key, color in [
@@ -1202,15 +1187,13 @@ def show_factures():
                             """, unsafe_allow_html=True)
 
                     st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
-
-                    # Actions
                     a1, a2, a3 = st.columns(3)
                     with a1:
                         new_statut = st.selectbox("Statut",
-                            ["À payer","Payée","En retard","Annulée"],
-                            index=["À payer","Payée","En retard","Annulée"].index(
-                                r.get("statut","À payer"))
-                            if r.get("statut","À payer") in ["À payer","Payée","En retard","Annulée"] else 0,
+                            ["À payer", "Payée", "En retard", "Annulée"],
+                            index=["À payer", "Payée", "En retard", "Annulée"].index(
+                                r.get("statut", "À payer"))
+                            if r.get("statut", "À payer") in ["À payer", "Payée", "En retard", "Annulée"] else 0,
                             key=f"statut_{sel_idx}")
                     with a2:
                         if st.button("💾 Enregistrer", key=f"save_{sel_idx}", use_container_width=True):
@@ -1220,7 +1203,7 @@ def show_factures():
                                 ).eq("id", r["id"]).execute()
                                 st.success("✅ Statut mis à jour")
                                 st.rerun()
-                            except:
+                            except Exception:
                                 r["statut"] = new_statut
                                 st.success("✅ Mis à jour localement")
                     with a3:
@@ -1229,7 +1212,7 @@ def show_factures():
                                 get_supabase().table("factures").delete().eq("id", r["id"]).execute()
                                 st.session_state["selected_facture_idx"] = None
                                 st.rerun()
-                            except:
+                            except Exception:
                                 st.error("❌ Erreur suppression")
 
                     st.markdown("</div>", unsafe_allow_html=True)
@@ -1237,9 +1220,7 @@ def show_factures():
                     st.markdown("""
                     <div class="invoice-viewer" style="text-align:center;padding:4rem 2rem;">
                         <div style="font-size:4rem;">👈</div>
-                        <p style="color:#c8956c;font-weight:600;">
-                            Sélectionnez une facture
-                        </p>
+                        <p style="color:#c8956c;font-weight:600;">Sélectionnez une facture</p>
                         <p style="color:#d4a882;font-size:0.85rem;">
                             Cliquez sur une facture pour voir son détail
                         </p>
@@ -1255,7 +1236,9 @@ def show_factures():
             </div>
             """, unsafe_allow_html=True)
 
-    # ── Export ───────────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════
+    # TAB 3 : EXPORT
+    # ══════════════════════════════════════════════════════
     with tab3:
         st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
         factures = get_data("factures")
