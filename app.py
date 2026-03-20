@@ -90,8 +90,10 @@ def cat_progress_bar(value: float, label: str = ""):
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     * { font-family: 'Inter', sans-serif !important; }
 
-    [data-testid="stSidebar"] { display: none !important; }
-    [data-testid="collapsedControl"] { display: none !important; }
+   [data-testid="stSidebarHeader"] { display: none !important; }
+   [data-testid="collapsedControl"] { display: none !important; }
+   header[data-testid="stHeader"] { display: none !important; }
+
 
     .main, .block-container {
         background: linear-gradient(135deg, #fff8f0 0%, #fdf0e8 100%) !important;
