@@ -233,6 +233,9 @@ st.markdown('</div>', unsafe_allow_html=True)
     border: 2px dashed #e5e0d8; padding: 3rem 2rem;
     text-align: center; margin-top: 1rem;
 }
+</style>
+""", unsafe_allow_html=True)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CHATBOT FLOTTANT
