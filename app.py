@@ -50,7 +50,21 @@ st.markdown("""
 .stApp { background: #f7f5f3 !important; }
 [data-testid="stSidebar"] { display: none !important; }
 header[data-testid="stHeader"] { display: none !important; }
-.block-container { padding: 0 !important; max-width: 100% !important; }
+
+/* ── SUPPRIMER TOUT LE VIDE STREAMLIT ── */
+.block-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+}
+.stApp > div:first-child { padding: 0 !important; }
+section.main > div { padding: 0 !important; }
+div[data-testid="stVerticalBlock"] { gap: 0 !important; }
+
+/* ── BOUTONS STREAMLIT CLIQUABLES ── */
+.stButton { position: relative; z-index: 1001 !important; }
+.stButton > button { position: relative; z-index: 1001 !important; }
+[data-testid="stForm"] { position: relative; z-index: 1001 !important; }
 
 /* ── TOPBAR ── */
 .topbar {
@@ -58,7 +72,7 @@ header[data-testid="stHeader"] { display: none !important; }
     height: 58px; background: white;
     border-bottom: 1px solid #ece9e4;
     display: flex; align-items: center;
-    padding: 0 2rem; z-index: 1000; gap: 2rem;
+    padding: 0 2rem; z-index: 999; gap: 2rem;  /* z-index réduit ! */
 }
 .topbar-logo {
     font-size: 1.1rem; font-weight: 800; color: #1a1a2e;
@@ -80,6 +94,8 @@ header[data-testid="stHeader"] { display: none !important; }
     border-radius: 50%; display: flex; align-items: center;
     justify-content: center; font-size: 0.9rem; cursor: pointer;
 }
+# Après le st.markdown de la navbar, ajoutez :
+st.markdown('<div style="height: 58px;"></div>', unsafe_allow_html=True)
 
 /* ── MAIN CONTENT ── */
 .main-content {
