@@ -51,7 +51,7 @@ st.markdown("""
 [data-testid="stSidebar"] { display: none !important; }
 header[data-testid="stHeader"] { display: none !important; }
 
-/* ── SUPPRIMER TOUT LE VIDE STREAMLIT ── */
+/* ---- SUPPRIMER TOUT LE VIDE STREAMLIT ---- */
 .block-container {
     padding: 0 !important;
     margin: 0 !important;
@@ -61,7 +61,7 @@ header[data-testid="stHeader"] { display: none !important; }
 section.main > div { padding: 0 !important; }
 div[data-testid="stVerticalBlock"] { gap: 0 !important; }
 
-/* ── BOUTONS NAV INVISIBLES MAIS CLIQUABLES ── */
+/* ---- BOUTONS NAV INVISIBLES MAIS CLIQUABLES ---- */
 .nav-btn-row {
     position: fixed; top: 0; left: 180px; right: 140px;
     height: 58px; display: flex; align-items: center;
@@ -83,10 +83,10 @@ div[data-testid="stVerticalBlock"] { gap: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── TOPBAR + NAV ──
+# ---- TOPBAR + NAV ----
 
 
-# ── TOPBAR + NAV ──
+# ---- TOPBAR + NAV ----
 nav_items = [
     ("dashboard",    "🏠 Tableau de bord"),
     ("factures",     "🧾 Factures"),
@@ -122,7 +122,7 @@ st.markdown("""
     color: #1a1a2e !important;
 }
 
-/* ── MAIN CONTENT ── */
+/* ---- MAIN CONTENT ---- */
 .main-content { margin-top: 58px; padding: 2rem 2.5rem; min-height: calc(100vh - 58px); }
 /* ... tout le reste du CSS ... */
 </style>
@@ -161,14 +161,14 @@ for i, (k, label) in enumerate(nav_items):
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-/* ── MAIN CONTENT ── */
+/* ---- MAIN CONTENT ---- */
 .main-content {
     margin-top: 58px;
     padding: 2rem 2.5rem;
     min-height: calc(100vh - 58px);
 }
 
-/* ── PAGE HEADER ── */
+/* ---- PAGE HEADER ---- */
 .page-header {
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
@@ -180,7 +180,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 }
 .page-header p { color: #6b7280; font-size: 0.84rem; margin: 0; }
 
-/* ── PANELS ── */
+/* ---- PANELS ---- */
 .panel {
     background: white; border-radius: 14px;
     border: 1px solid #ece9e4;
@@ -195,7 +195,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 .panel-title { font-size: 0.88rem; font-weight: 700; color: #1a1a2e; }
 .panel-body { padding: 1rem 1.2rem; }
 
-/* ── KPI GRID ── */
+/* ---- KPI GRID ---- */
 .kpi-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -212,7 +212,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 .kpi-value { font-size: 1.6rem; font-weight: 800; color: #1a1a2e; line-height: 1; }
 .kpi-change { font-size: 0.72rem; color: #9ca3af; margin-top: 0.35rem; }
 
-/* ── BADGES ── */
+/* ---- BADGES ---- */
 .badge {
     display: inline-flex; align-items: center;
     padding: 0.2rem 0.6rem; border-radius: 20px;
@@ -223,7 +223,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 .badge-red    { background: #fee2e2; color: #dc2626; }
 .badge-gray   { background: #f3f4f6; color: #6b7280; }
 
-/* ── TABLE ── */
+/* ---- TABLE ---- */
 .invoice-table {
     width: 100%; border-collapse: collapse; font-size: 0.82rem;
 }
@@ -241,7 +241,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 .invoice-table tr:last-child td { border-bottom: none; }
 .invoice-table tr:hover td { background: #fafaf9; }
 
-/* ── FORM ── */
+/* ---- FORM ---- */
 .form-panel {
     background: white; border-radius: 14px;
     border: 1px solid #ece9e4; padding: 1.5rem;
@@ -253,7 +253,7 @@ st.markdown('</div>', unsafe_allow_html=True)
     letter-spacing: 0.08em; margin-bottom: 1rem;
 }
 
-/* ── UPLOAD ZONE ── */
+/* ---- UPLOAD ZONE ---- */
 .upload-zone {
     background: white; border-radius: 14px;
     border: 2px dashed #e5e0d8; padding: 3rem 2rem;
@@ -358,7 +358,7 @@ if st.session_state.get("chat_open", False):
 
 st.markdown("""
 <style>
-/* ── SCROLLBAR ── */
+/* ---- SCROLLBAR ---- */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #e5e0d8; border-radius: 4px; }
@@ -479,13 +479,13 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Navigation via query params ──
+# ---- Navigation via query params ----
 params = st.query_params
 if "page" in params:
     st.session_state["page"] = params["page"]
     page = params["page"]
 
-# ── Boutons nav Streamlit (fallback fiable) ──
+# ---- Boutons nav Streamlit (fallback fiable) ----
 with st.sidebar:
     for k, label in nav_items:
         if st.button(label, key=f"nav_{k}", use_container_width=True):
@@ -700,7 +700,7 @@ if page == "dashboard":
 
         st.markdown('</div></div>', unsafe_allow_html=True)
 
-        # ── Raccourcis rapides ──
+        # ---- Raccourcis rapides ----
         st.markdown("""
         <div class="panel" style="margin-top:1rem;">
             <div class="panel-header">
