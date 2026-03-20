@@ -61,10 +61,25 @@ header[data-testid="stHeader"] { display: none !important; }
 section.main > div { padding: 0 !important; }
 div[data-testid="stVerticalBlock"] { gap: 0 !important; }
 
-/* ── BOUTONS STREAMLIT CLIQUABLES ── */
-.stButton { position: relative; z-index: 1001 !important; }
-.stButton > button { position: relative; z-index: 1001 !important; }
-[data-testid="stForm"] { position: relative; z-index: 1001 !important; }
+/* ── BOUTONS NAV INVISIBLES MAIS CLIQUABLES ── */
+.nav-btn-row {
+    position: fixed; top: 0; left: 180px; right: 140px;
+    height: 58px; display: flex; align-items: center;
+    gap: 0.25rem; z-index: 1002;
+}
+.nav-btn-row .stButton > button {
+    background: transparent !important;
+    border: none !important;
+    color: transparent !important;
+    box-shadow: none !important;
+    height: 36px !important;
+    padding: 0 0.9rem !important;
+    font-size: 0.82rem !important;
+    cursor: pointer !important;
+}
+.nav-btn-row .stButton > button:hover {
+    background: transparent !important;
+}
 
 /* ── TOPBAR ── */
 .topbar {
@@ -72,8 +87,10 @@ div[data-testid="stVerticalBlock"] { gap: 0 !important; }
     height: 58px; background: white;
     border-bottom: 1px solid #ece9e4;
     display: flex; align-items: center;
-    padding: 0 2rem; z-index: 999; gap: 2rem;  /* z-index réduit ! */
+    padding: 0 2rem; z-index: 1001; gap: 2rem;
+    pointer-events: none;
 }
+.topbar * { pointer-events: none; }
 .topbar-logo {
     font-size: 1.1rem; font-weight: 800; color: #1a1a2e;
     display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;
@@ -83,19 +100,16 @@ div[data-testid="stVerticalBlock"] { gap: 0 !important; }
 .topbar-nav a {
     padding: 0.4rem 0.9rem; border-radius: 8px;
     font-size: 0.82rem; font-weight: 500; color: #6b7280;
-    text-decoration: none; transition: all 0.15s; white-space: nowrap;
+    text-decoration: none; white-space: nowrap;
 }
-.topbar-nav a:hover { background: #f7f5f3; color: #1a1a2e; }
 .topbar-nav a.active { background: #fff4ee; color: #f0a070; font-weight: 600; }
 .topbar-right { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; }
 .topbar-avatar {
     width: 32px; height: 32px;
     background: linear-gradient(135deg, #f0a070, #e07040);
     border-radius: 50%; display: flex; align-items: center;
-    justify-content: center; font-size: 0.9rem; cursor: pointer;
+    justify-content: center; font-size: 0.9rem;
 }
-# Après le st.markdown de la navbar, ajoutez :
-st.markdown('<div style="height: 58px;"></div>', unsafe_allow_html=True)
 
 /* ── MAIN CONTENT ── */
 .main-content {
@@ -114,9 +128,7 @@ st.markdown('<div style="height: 58px;"></div>', unsafe_allow_html=True)
     font-size: 1.5rem; font-weight: 800;
     color: #1a1a2e; margin: 0 0 0.25rem 0;
 }
-.page-header p {
-    color: #6b7280; font-size: 0.84rem; margin: 0;
-}
+.page-header p { color: #6b7280; font-size: 0.84rem; margin: 0; }
 
 /* ── PANELS ── */
 .panel {
@@ -130,9 +142,7 @@ st.markdown('<div style="height: 58px;"></div>', unsafe_allow_html=True)
     display: flex; align-items: center;
     justify-content: space-between;
 }
-.panel-title {
-    font-size: 0.88rem; font-weight: 700; color: #1a1a2e;
-}
+.panel-title { font-size: 0.88rem; font-weight: 700; color: #1a1a2e; }
 .panel-body { padding: 1rem 1.2rem; }
 
 /* ── KPI GRID ── */
@@ -209,7 +219,7 @@ st.markdown('<div style="height: 58px;"></div>', unsafe_allow_html=True)
     align-items: center; justify-content: center;
     font-size: 1.5rem; cursor: pointer;
     box-shadow: 0 4px 20px rgba(240,112,64,0.4);
-    z-index: 2000; transition: transform 0.2s;
+    z-index: 900; transition: transform 0.2s;
 }
 .chat-fab:hover { transform: scale(1.1); }
 .chat-window {
@@ -217,7 +227,7 @@ st.markdown('<div style="height: 58px;"></div>', unsafe_allow_html=True)
     width: 340px; height: 480px;
     background: white; border-radius: 20px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-    z-index: 1999; display: flex; flex-direction: column;
+    z-index: 900; display: flex; flex-direction: column;
     border: 1px solid #ece9e4; overflow: hidden;
 }
 .chat-header {
@@ -248,6 +258,19 @@ st.markdown('<div style="height: 58px;"></div>', unsafe_allow_html=True)
 }
 .chat-input-area {
     padding: 0.75rem; border-top: 1px solid #ece9e4; background: white;
+    display: flex; gap: 0.5rem;
+}
+.chat-input-area input {
+    flex: 1; border: 1px solid #ece9e4;
+    border-radius: 10px; padding: 0.6rem 0.9rem;
+    font-size: 0.82rem; outline: none;
+    font-family: 'Inter', sans-serif;
+}
+.chat-send-btn {
+    background: linear-gradient(135deg, #f0a070, #e07040);
+    border: none; border-radius: 10px;
+    color: white; padding: 0.6rem 0.9rem;
+    cursor: pointer; font-size: 0.9rem;
 }
 
 /* ── SCROLLBAR ── */
@@ -256,6 +279,7 @@ st.markdown('<div style="height: 58px;"></div>', unsafe_allow_html=True)
 ::-webkit-scrollbar-thumb { background: #e5e0d8; border-radius: 4px; }
 </style>
 """, unsafe_allow_html=True)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FONCTIONS UTILITAIRES
