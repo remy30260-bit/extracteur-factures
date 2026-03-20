@@ -80,6 +80,11 @@ div[data-testid="stVerticalBlock"] { gap: 0 !important; }
 .nav-btn-row .stButton > button:hover {
     background: transparent !important;
 }
+</style>
+""", unsafe_allow_html=True)
+
+# ── TOPBAR + NAV ──
+
 
 # ── TOPBAR + NAV ──
 nav_items = [
