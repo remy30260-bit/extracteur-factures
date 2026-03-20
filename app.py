@@ -103,21 +103,14 @@ for k, label in nav_items:
     active = "active" if page == k else ""
     nav_html += f'<a class="{active}">{label}</a>'
 
-st.markdown(f"""
-<div class="topbar">
-    <div class="topbar-logo">&#x1F431; Facture<span>Cat</span></div>
-    <nav class="topbar-nav">{nav_html}</nav>
-    <div class="topbar-right">
-        <div class="topbar-avatar">&#x1F431;</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
+# 1. CSS supplémentaire
+st.markdown("""
+<style>
 /* Rend les boutons nav visibles au survol */
 .nav-btn-row .stButton > button {
     background: transparent !important;
     border: none !important;
-    color: #6b7280 !important;  /* ← visible maintenant */
+    color: #6b7280 !important;
     box-shadow: none !important;
     height: 36px !important;
     padding: 0 0.9rem !important;
@@ -128,6 +121,34 @@ st.markdown(f"""
     background: #f7f5f3 !important;
     color: #1a1a2e !important;
 }
+
+/* ── MAIN CONTENT ── */
+.main-content { margin-top: 58px; padding: 2rem 2.5rem; min-height: calc(100vh - 58px); }
+/* ... tout le reste du CSS ... */
+</style>
+""", unsafe_allow_html=True)
+
+# 2. Topbar HTML décoratif
+st.markdown(f"""
+<div class="topbar">
+    <div class="topbar-logo">&#x1F431; Facture<span>Cat</span></div>
+    <nav class="topbar-nav">{nav_html}</nav>
+    <div class="topbar-right">
+        <div class="topbar-avatar">&#x1F431;</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# 3. Boutons Streamlit cliquables
+st.markdown('<div class="nav-btn-row">', unsafe_allow_html=True)
+cols = st.columns(len(nav_items))
+for i, (k, label) in enumerate(nav_items):
+    with cols[i]:
+        if st.button(label, key=f"nav_{k}"):
+            st.session_state["page"] = k
+            st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
+
 
 # Boutons Streamlit RÉELS positionnés par-dessus la topbar
 st.markdown('<div class="nav-btn-row">', unsafe_allow_html=True)
